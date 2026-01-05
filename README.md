@@ -30,6 +30,20 @@ Centraliza pedidos (peças, campanhas, landing pages etc.), controla status, pra
 - `POST /requests` – cria demanda (enums alinhados aos tipos do PostgreSQL)
 - `GET /requests/{id}` – consulta demanda
 
+## Arquitetura e Foundation
+
+### Schema preparado para crescimento
+
+O schema do banco de dados (migrations Flyway) já inclui tabelas e tipos preparados para funcionalidades futuras:
+
+- **Tabelas**: `users`, `projects`, `request_events` (audit trail)
+- **Enums nativos PostgreSQL**: `request_type`, `request_priority`, `request_status`, `request_event_type`
+
+**Estado atual do código**: implementado `Client` e `Request` (core funcional Day 2).  
+**Próximas fases**: autenticação (`users`), agrupamento de demandas (`projects`), histórico completo (`request_events`).
+
+Essa abordagem "foundation-first" facilita evolução incremental sem quebrar migrations ou exigir refatorações de schema.
+
 ## Interface web
 
 Uma página de testes estática em [src/main/resources/static/index.html](src/main/resources/static/index.html) para criar e consultar clientes/requests.
