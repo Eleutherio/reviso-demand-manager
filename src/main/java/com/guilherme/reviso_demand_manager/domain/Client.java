@@ -1,7 +1,7 @@
 package com.guilherme.reviso_demand_manager.domain;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
@@ -21,12 +21,12 @@ public class Client {
     private Boolean active;
     
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
 
     public Client() {
     }
 
-    public Client(UUID id, String name, String segment, Boolean active, LocalDateTime createdAt) {
+    public Client(UUID id, String name, String segment, Boolean active, OffsetDateTime createdAt) {
         this.id = id;
         this.name = name;
         this.segment = segment;
@@ -66,11 +66,11 @@ public class Client {
         this.active = active;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
     }
 }

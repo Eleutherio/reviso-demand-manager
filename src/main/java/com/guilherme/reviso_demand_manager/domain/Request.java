@@ -3,7 +3,7 @@ package com.guilherme.reviso_demand_manager.domain;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
@@ -39,24 +39,24 @@ public class Request {
     private RequestStatus status;
     
     @Column(name = "due_date")
-    private LocalDateTime dueDate;
+    private OffsetDateTime dueDate;
     
     @Column(name = "revision_count", nullable = false)
     private Integer revisionCount;
     
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
     
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    private OffsetDateTime updatedAt;
 
     public Request() {
     }
 
     public Request(UUID id, UUID clientId, String title, String description, 
                    RequestType type, RequestPriority priority, RequestStatus status,
-                   LocalDateTime dueDate, Integer revisionCount, 
-                   LocalDateTime createdAt, LocalDateTime updatedAt) {
+                   OffsetDateTime dueDate, Integer revisionCount, 
+                   OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.id = id;
         this.clientId = clientId;
         this.title = title;
@@ -126,11 +126,11 @@ public class Request {
         this.status = status;
     }
 
-    public LocalDateTime getDueDate() {
+    public OffsetDateTime getDueDate() {
         return dueDate;
     }
 
-    public void setDueDate(LocalDateTime dueDate) {
+    public void setDueDate(OffsetDateTime dueDate) {
         this.dueDate = dueDate;
     }
 
@@ -142,19 +142,19 @@ public class Request {
         this.revisionCount = revisionCount;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
     }
 
-    public LocalDateTime getUpdatedAt() {
+    public OffsetDateTime getUpdatedAt() {
         return updatedAt;
     }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
+    public void setUpdatedAt(OffsetDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
 }

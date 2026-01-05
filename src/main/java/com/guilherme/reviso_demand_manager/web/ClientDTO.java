@@ -1,6 +1,6 @@
 package com.guilherme.reviso_demand_manager.web;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public record ClientDTO(
@@ -8,6 +8,6 @@ public record ClientDTO(
     String name,
     String segment,
     Boolean active,
-    LocalDateTime createdAt
+    OffsetDateTime createdAt
 ) {
 }

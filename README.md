@@ -30,7 +30,6 @@ Centraliza pedidos (peças, campanhas, landing pages etc.), controla status, pra
 - `POST /requests` – cria demanda (enums alinhados aos tipos do PostgreSQL)
 - `GET /requests/{id}` – consulta demanda
 
-<<<<<<< HEAD
 ## Arquitetura e Foundation
 
 ### Schema preparado para crescimento

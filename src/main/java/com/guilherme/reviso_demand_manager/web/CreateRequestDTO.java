@@ -5,7 +5,7 @@ import com.guilherme.reviso_demand_manager.domain.RequestType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public record CreateRequestDTO(
@@ -18,6 +18,6 @@ public record CreateRequestDTO(
     String description,
     RequestType type,
     RequestPriority priority,
-    LocalDateTime dueDate
+    OffsetDateTime dueDate
 ) {
 }

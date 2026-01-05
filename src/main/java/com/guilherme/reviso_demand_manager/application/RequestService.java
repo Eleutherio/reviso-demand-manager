@@ -2,13 +2,22 @@ package com.guilherme.reviso_demand_manager.application;
 
 import com.guilherme.reviso_demand_manager.domain.Request;
 import com.guilherme.reviso_demand_manager.domain.RequestStatus;
+import com.guilherme.reviso_demand_manager.domain.RequestType;
+import com.guilherme.reviso_demand_manager.domain.RequestPriority;
 import com.guilherme.reviso_demand_manager.infra.RequestRepository;
+import com.guilherme.reviso_demand_manager.infra.RequestSpecifications;
 import com.guilherme.reviso_demand_manager.web.CreateRequestDTO;
 import com.guilherme.reviso_demand_manager.web.RequestDTO;
+import com.guilherme.reviso_demand_manager.web.ResourceNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Service
@@ -27,13 +36,13 @@ public class RequestService {
         request.setClientId(dto.clientId());
         request.setTitle(dto.title());
         request.setDescription(dto.description());
-        request.setType(dto.type());
-        request.setPriority(dto.priority());
+        request.setType(dto.type() != null ? dto.type() : RequestType.OTHER);
+        request.setPriority(dto.priority() != null ? dto.priority() : RequestPriority.MEDIUM);
         request.setStatus(RequestStatus.NEW);
         request.setDueDate(dto.dueDate());
         request.setRevisionCount(0);
-        request.setCreatedAt(LocalDateTime.now());
-        request.setUpdatedAt(LocalDateTime.now());
+        request.setCreatedAt(OffsetDateTime.now());
+        request.setUpdatedAt(OffsetDateTime.now());
 
         Request saved = requestRepository.save(request);
         return toDTO(saved);
@@ -42,8 +51,37 @@ public class RequestService {
     @Transactional(readOnly = true)
     public RequestDTO getRequestById(UUID id) {
         Request request = requestRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Request not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
         return toDTO(request);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<RequestDTO> getAllRequests(
+            RequestStatus status,
+            RequestPriority priority,
+            RequestType type,
+            UUID clientId,
+            OffsetDateTime dueBefore,
+            OffsetDateTime createdFrom,
+            OffsetDateTime createdTo,
+            int page,
+            int size,
+            String sortBy,
+            String direction) {
+
+        Sort.Direction sortDirection = "desc".equalsIgnoreCase(direction) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
+
+        Specification<Request> spec = Specification
+                .where(RequestSpecifications.hasStatus(status))
+                .and(RequestSpecifications.hasPriority(priority))
+                .and(RequestSpecifications.hasType(type))
+                .and(RequestSpecifications.hasClientId(clientId))
+                .and(RequestSpecifications.dueBefore(dueBefore))
+                .and(RequestSpecifications.createdFrom(createdFrom))
+                .and(RequestSpecifications.createdTo(createdTo));
+
+        return requestRepository.findAll(spec, pageable).map(this::toDTO);
     }
 
     private RequestDTO toDTO(Request request) {
