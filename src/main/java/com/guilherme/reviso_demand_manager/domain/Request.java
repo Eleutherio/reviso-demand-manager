@@ -48,6 +48,9 @@ public class Request {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", nullable = false, columnDefinition = "request_status")
     private RequestStatus status;
+
+    @Column(name = "assignee_id", columnDefinition = "UUID")
+    private UUID assigneeId;
     
     @Column(name = "due_date")
     private OffsetDateTime dueDate;
@@ -153,6 +156,14 @@ public class Request {
         }
 
         this.status = status;
+    }
+
+    public UUID getAssigneeId() {
+        return assigneeId;
+    }
+
+    public void setAssigneeId(UUID assigneeId) {
+        this.assigneeId = assigneeId;
     }
 
     public OffsetDateTime getDueDate() {

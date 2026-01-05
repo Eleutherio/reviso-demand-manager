@@ -66,4 +66,61 @@ public class RequestWorkflowService {
 
         return requestEventRepository.save(event);
     }
+
+    @Transactional
+    public RequestEvent changeStatus(UUID requestId, RequestStatus toStatus, String message, UUID actorId) {
+        return appendEvent(requestId, RequestEventType.STATUS_CHANGED, toStatus, message, actorId);
+    }
+
+    @Transactional
+    public RequestEvent addComment(UUID requestId, String message, UUID actorId) {
+        if (message == null || message.isBlank()) {
+            throw new IllegalArgumentException("comment message is required");
+        }
+        return appendEvent(requestId, RequestEventType.COMMENT_ADDED, null, message, actorId);
+    }
+
+    @Transactional
+    public RequestEvent addRevision(UUID requestId, String message, UUID actorId) {
+        Request request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
+
+        int current = request.getRevisionCount() != null ? request.getRevisionCount() : 0;
+        request.setRevisionCount(current + 1);
+        requestRepository.save(request);
+
+        RequestEvent event = new RequestEvent();
+        event.setId(UUID.randomUUID());
+        event.setRequest(request);
+        event.setActorId(actorId);
+        event.setEventType(RequestEventType.REVISION_ADDED);
+        event.setFromStatus(request.getStatus());
+        event.setToStatus(request.getStatus());
+        event.setMessage(message);
+        event.setRevisionNumber(request.getRevisionCount());
+        event.setCreatedAt(OffsetDateTime.now());
+
+        return requestEventRepository.save(event);
+    }
+
+    @Transactional
+    public RequestEvent assign(UUID requestId, UUID assigneeId, UUID actorId) {
+        Request request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
+
+        request.setAssigneeId(assigneeId);
+        requestRepository.save(request);
+
+        RequestEvent event = new RequestEvent();
+        event.setId(UUID.randomUUID());
+        event.setRequest(request);
+        event.setActorId(actorId);
+        event.setEventType(RequestEventType.ASSIGNED);
+        event.setFromStatus(request.getStatus());
+        event.setToStatus(request.getStatus());
+        event.setRevisionNumber(request.getRevisionCount());
+        event.setCreatedAt(OffsetDateTime.now());
+
+        return requestEventRepository.save(event);
+    }
 }
