@@ -1,9 +1,16 @@
 package com.guilherme.reviso_demand_manager.web;
 
 import com.guilherme.reviso_demand_manager.application.RequestService;
+import com.guilherme.reviso_demand_manager.application.RequestWorkflowService;
+import com.guilherme.reviso_demand_manager.domain.RequestEvent;
 import com.guilherme.reviso_demand_manager.domain.RequestPriority;
 import com.guilherme.reviso_demand_manager.domain.RequestStatus;
 import com.guilherme.reviso_demand_manager.domain.RequestType;
+import com.guilherme.reviso_demand_manager.web.AssignRequestDTO;
+import com.guilherme.reviso_demand_manager.web.ChangeStatusDTO;
+import com.guilherme.reviso_demand_manager.web.CommentDTO;
+import com.guilherme.reviso_demand_manager.web.RequestEventDTO;
+import com.guilherme.reviso_demand_manager.web.RevisionDTO;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -11,16 +18,20 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/requests")
 public class RequestController {
 
     private final RequestService requestService;
+    private final RequestWorkflowService requestWorkflowService;
 
-    public RequestController(RequestService requestService) {
+    public RequestController(RequestService requestService, RequestWorkflowService requestWorkflowService) {
         this.requestService = requestService;
+        this.requestWorkflowService = requestWorkflowService;
     }
 
     @PostMapping
@@ -55,5 +66,51 @@ public class RequestController {
                 page, size, sortBy, direction
         );
         return ResponseEntity.ok(requests);
+    }
+
+    @PostMapping("/{id}/status")
+    public ResponseEntity<RequestEventDTO> changeStatus(@PathVariable UUID id, @Valid @RequestBody ChangeStatusDTO dto) {
+        RequestEvent event = requestWorkflowService.changeStatus(id, dto.toStatus(), dto.message(), dto.actorId());
+        return ResponseEntity.ok(toEventDTO(event));
+    }
+
+    @PostMapping("/{id}/comments")
+    public ResponseEntity<RequestEventDTO> addComment(@PathVariable UUID id, @Valid @RequestBody CommentDTO dto) {
+        RequestEvent event = requestWorkflowService.addComment(id, dto.message(), dto.actorId());
+        return ResponseEntity.ok(toEventDTO(event));
+    }
+
+    @PostMapping("/{id}/revisions")
+    public ResponseEntity<RequestEventDTO> addRevision(@PathVariable UUID id, @RequestBody RevisionDTO dto) {
+        RequestEvent event = requestWorkflowService.addRevision(id, dto.message(), dto.actorId());
+        return ResponseEntity.ok(toEventDTO(event));
+    }
+
+    @PostMapping("/{id}/assign")
+    public ResponseEntity<RequestEventDTO> assign(@PathVariable UUID id, @Valid @RequestBody AssignRequestDTO dto) {
+        RequestEvent event = requestWorkflowService.assign(id, dto.assigneeId(), dto.actorId());
+        return ResponseEntity.ok(toEventDTO(event));
+    }
+
+    @GetMapping("/{id}/events")
+    public ResponseEntity<List<RequestEventDTO>> listEvents(@PathVariable UUID id) {
+        List<RequestEventDTO> events = requestWorkflowService.listEvents(id).stream()
+                .map(this::toEventDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(events);
+    }
+
+    private RequestEventDTO toEventDTO(RequestEvent event) {
+        return new RequestEventDTO(
+                event.getId(),
+                event.getRequest().getId(),
+                event.getActorId(),
+                event.getEventType(),
+                event.getFromStatus(),
+                event.getToStatus(),
+                event.getMessage(),
+                event.getRevisionNumber(),
+                event.getCreatedAt()
+        );
     }
 }

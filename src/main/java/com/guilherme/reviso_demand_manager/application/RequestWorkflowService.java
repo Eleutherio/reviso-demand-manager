@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -122,5 +123,13 @@ public class RequestWorkflowService {
         event.setCreatedAt(OffsetDateTime.now());
 
         return requestEventRepository.save(event);
+    }
+
+    @Transactional(readOnly = true)
+    public List<RequestEvent> listEvents(UUID requestId) {
+        if (!requestRepository.existsById(requestId)) {
+            throw new ResourceNotFoundException("Request not found");
+        }
+        return requestEventRepository.findByRequestIdOrderByCreatedAtDesc(requestId);
     }
 }

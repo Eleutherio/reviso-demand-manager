@@ -15,6 +15,7 @@ public record RequestDTO(
     RequestType type,
     RequestPriority priority,
     RequestStatus status,
+    UUID assigneeId,
     OffsetDateTime dueDate,
     Integer revisionCount,
     OffsetDateTime createdAt,

@@ -88,6 +88,7 @@ public class RequestService {
                 request.getType(),
                 request.getPriority(),
                 request.getStatus(),
+            request.getAssigneeId(),
                 request.getDueDate(),
                 request.getRevisionCount(),
                 request.getCreatedAt(),
