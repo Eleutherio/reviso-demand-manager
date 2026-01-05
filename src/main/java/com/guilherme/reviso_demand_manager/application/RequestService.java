@@ -5,7 +5,7 @@ import com.guilherme.reviso_demand_manager.domain.RequestStatus;
 import com.guilherme.reviso_demand_manager.domain.RequestType;
 import com.guilherme.reviso_demand_manager.domain.RequestPriority;
 import com.guilherme.reviso_demand_manager.infra.RequestRepository;
-import com.guilherme.reviso_demand_manager.infra.RequestSpecifications;
+import com.guilherme.reviso_demand_manager.infra.spec.RequestSpecifications;
 import com.guilherme.reviso_demand_manager.web.CreateRequestDTO;
 import com.guilherme.reviso_demand_manager.web.RequestDTO;
 import com.guilherme.reviso_demand_manager.web.ResourceNotFoundException;
@@ -72,14 +72,9 @@ public class RequestService {
         Sort.Direction sortDirection = "desc".equalsIgnoreCase(direction) ? Sort.Direction.DESC : Sort.Direction.ASC;
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
 
-        Specification<Request> spec = Specification
-                .where(RequestSpecifications.hasStatus(status))
-                .and(RequestSpecifications.hasPriority(priority))
-                .and(RequestSpecifications.hasType(type))
-                .and(RequestSpecifications.hasClientId(clientId))
-                .and(RequestSpecifications.dueBefore(dueBefore))
-                .and(RequestSpecifications.createdFrom(createdFrom))
-                .and(RequestSpecifications.createdTo(createdTo));
+        Specification<Request> spec = RequestSpecifications.build(
+                clientId, status, type, priority, dueBefore, createdFrom, createdTo
+        );
 
         return requestRepository.findAll(spec, pageable).map(this::toDTO);
     }
