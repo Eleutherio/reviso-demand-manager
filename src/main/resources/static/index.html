@@ -166,6 +166,88 @@
         color: #3498db;
         font-style: italic;
       }
+
+      .request-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+      .request-card:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      .request-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 12px;
+      }
+      .request-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #2c3e50;
+        margin: 0;
+      }
+      .request-meta {
+        font-size: 12px;
+        color: #7f8c8d;
+        margin: 4px 0;
+      }
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .badge.status-new {
+        background: #e3f2fd;
+        color: #1976d2;
+      }
+      .badge.status-in_progress {
+        background: #fff3e0;
+        color: #f57c00;
+      }
+      .badge.status-in_review {
+        background: #f3e5f5;
+        color: #7b1fa2;
+      }
+      .badge.status-approved {
+        background: #e8f5e9;
+        color: #388e3c;
+      }
+      .badge.priority-low {
+        background: #f5f5f5;
+        color: #616161;
+      }
+      .badge.priority-medium {
+        background: #fff9c4;
+        color: #f9a825;
+      }
+      .badge.priority-high {
+        background: #ffe0b2;
+        color: #e65100;
+      }
+      .badge.priority-urgent {
+        background: #ffcdd2;
+        color: #c62828;
+      }
+      .badge.type {
+        background: #e0f2f1;
+        color: #00695c;
+      }
+      .results-summary {
+        background: #f8f9fa;
+        padding: 12px 16px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        font-size: 14px;
+        color: #495057;
+      }
     </style>
   </head>
   <body>
@@ -292,16 +374,18 @@
           style="display: none; margin-top: 15px"
         ></div>
 
-        <h3 style="margin-top: 30px; margin-bottom: 10px">Buscar Requisição</h3>
+        <h3 style="margin-top: 30px; margin-bottom: 10px">
+          Buscar Requisições por Cliente
+        </h3>
         <div class="form-group">
-          <label for="requestIdSearch">ID da Requisição</label>
+          <label for="clientIdSearch">ID do Cliente</label>
           <input
             type="text"
-            id="requestIdSearch"
-            placeholder="UUID da requisição"
+            id="clientIdSearch"
+            placeholder="UUID do cliente"
           />
         </div>
-        <button onclick="getRequest()">Buscar</button>
+        <button onclick="getRequestsByClient()">Buscar Requisições</button>
         <div class="loading" id="searchLoading">Carregando...</div>
         <div
           class="response"
@@ -450,22 +534,32 @@
         }
       }
 
-      async function getRequest() {
-        const id = document.getElementById("requestIdSearch").value;
+      async function getRequestsByClient() {
+        const clientId = document.getElementById("clientIdSearch").value;
 
-        if (!id) {
-          alert("ID é obrigatório!");
+        if (!clientId) {
+          alert("ID do Cliente é obrigatório!");
           return;
         }
 
         document.getElementById("searchLoading").style.display = "block";
+        document.getElementById("searchResponse").style.display = "none";
 
         try {
-          const response = await fetch(`${API_URL}/requests/${id}`);
+          const response = await fetch(
+            `${API_URL}/requests?clientId=${clientId}&size=50`
+          );
           const data = await response.json();
 
           if (response.ok) {
-            showResponse("searchResponse", data, false);
+            if (data.content && data.content.length > 0) {
+              renderRequestsList(data);
+            } else {
+              document.getElementById("searchResponse").innerHTML =
+                '<div style="padding: 20px; text-align: center; color: #7f8c8d;">📭 Nenhuma requisição encontrada para este cliente</div>';
+              document.getElementById("searchResponse").className = "response";
+              document.getElementById("searchResponse").style.display = "block";
+            }
           } else {
             showResponse("searchResponse", data, true);
           }
@@ -474,6 +568,82 @@
         } finally {
           document.getElementById("searchLoading").style.display = "none";
         }
+      }
+
+      function renderRequestsList(data) {
+        const container = document.getElementById("searchResponse");
+
+        const statusMap = {
+          NEW: "status-new",
+          IN_PROGRESS: "status-in_progress",
+          IN_REVIEW: "status-in_review",
+          APPROVED: "status-approved",
+        };
+
+        const priorityMap = {
+          LOW: "priority-low",
+          MEDIUM: "priority-medium",
+          HIGH: "priority-high",
+          URGENT: "priority-urgent",
+        };
+
+        let html = `
+          <div class="results-summary">
+            <strong>📊 ${data.totalElements}</strong> requisição${
+          data.totalElements !== 1 ? "ões" : ""
+        } encontrada${data.totalElements !== 1 ? "s" : ""} 
+            (Página ${data.number + 1} de ${data.totalPages})
+          </div>
+        `;
+
+        data.content.forEach((req) => {
+          const createdDate = new Date(req.createdAt).toLocaleString("pt-BR");
+          const dueDate = req.dueDate
+            ? new Date(req.dueDate).toLocaleString("pt-BR")
+            : "Não definido";
+
+          html += `
+            <div class="request-card">
+              <div class="request-header">
+                <div>
+                  <h4 class="request-title">${req.title}</h4>
+                  <div class="request-meta">ID: ${req.id.substring(
+                    0,
+                    8
+                  )}...</div>
+                </div>
+                <div style="text-align: right;">
+                  <div><span class="badge ${statusMap[req.status] || ""}">${
+            req.status
+          }</span></div>
+                  <div style="margin-top: 4px;"><span class="badge ${
+                    priorityMap[req.priority] || ""
+                  }">${req.priority}</span></div>
+                </div>
+              </div>
+              
+              ${
+                req.description
+                  ? `<p style="color: #495057; margin: 8px 0; font-size: 14px;">${req.description}</p>`
+                  : ""
+              }
+              
+              <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; color: #6c757d;">
+                <div><span class="badge type">${req.type}</span></div>
+                <div>📅 Vencimento: <strong>${dueDate}</strong></div>
+                <div>🔄 Revisões: <strong>${req.revisionCount}</strong></div>
+              </div>
+              
+              <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e9ecef; font-size: 12px; color: #adb5bd;">
+                Criado em ${createdDate}
+              </div>
+            </div>
+          `;
+        });
+
+        container.innerHTML = html;
+        container.className = "response";
+        container.style.display = "block";
       }
 
       // Carregar clientes ao iniciar
