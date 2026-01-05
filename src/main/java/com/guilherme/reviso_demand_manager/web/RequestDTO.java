@@ -4,7 +4,7 @@ import com.guilherme.reviso_demand_manager.domain.RequestPriority;
 import com.guilherme.reviso_demand_manager.domain.RequestStatus;
 import com.guilherme.reviso_demand_manager.domain.RequestType;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public record RequestDTO(
@@ -15,9 +15,9 @@ public record RequestDTO(
     RequestType type,
     RequestPriority priority,
     RequestStatus status,
-    LocalDateTime dueDate,
+    OffsetDateTime dueDate,
     Integer revisionCount,
-    LocalDateTime createdAt,
-    LocalDateTime updatedAt
+    OffsetDateTime createdAt,
+    OffsetDateTime updatedAt
 ) {
 }

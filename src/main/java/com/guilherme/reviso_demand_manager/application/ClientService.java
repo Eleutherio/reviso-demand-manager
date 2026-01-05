@@ -7,7 +7,7 @@ import com.guilherme.reviso_demand_manager.web.CreateClientDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,7 +27,7 @@ public class ClientService {
         client.setName(dto.name());
         client.setSegment(dto.segment());
         client.setActive(true);
-        client.setCreatedAt(LocalDateTime.now());
+        client.setCreatedAt(OffsetDateTime.now());
 
         Client saved = clientRepository.save(client);
         return toDTO(saved);
