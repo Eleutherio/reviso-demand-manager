@@ -1,715 +1,931 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Reviso Demand Manager</title>
+    <title>Reviso | Admin Console</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
       body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-          sans-serif;
-        background: #f5f5f5;
-        color: #333;
+        background: #f6f7fb;
+        overflow-x: hidden;
       }
-      .container {
-        max-width: 1000px;
-        margin: 0 auto;
-        padding: 20px;
+      .status-badge {
+        text-transform: uppercase;
+        font-size: 0.75rem;
       }
-      header {
-        background: #2c3e50;
-        color: white;
-        padding: 20px 0;
-        margin-bottom: 30px;
-        text-align: center;
+      .card-shadow {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+        border: 1px solid #eef1f5;
       }
-      h1 {
-        font-size: 28px;
-        margin-bottom: 5px;
+      .clickable {
+        cursor: pointer;
       }
-      .subtitle {
-        font-size: 14px;
-        opacity: 0.9;
+      .list-scroll {
+        max-height: calc(100vh - 280px);
+        overflow-y: auto;
       }
-
-      .section {
-        background: white;
-        border-radius: 8px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      .skeleton {
+        background: linear-gradient(
+          90deg,
+          #f2f4f7 25%,
+          #e9ecf2 37%,
+          #f2f4f7 63%
+        );
+        background-size: 400% 100%;
+        animation: shimmer 1.4s ease infinite;
       }
-      .section h2 {
-        margin-bottom: 15px;
-        font-size: 20px;
-        border-bottom: 2px solid #3498db;
-        padding-bottom: 10px;
-      }
-
-      .form-group {
-        margin-bottom: 15px;
-      }
-      label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: 500;
-      }
-      input,
-      textarea,
-      select {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 14px;
-      }
-      textarea {
-        resize: vertical;
-        min-height: 100px;
-      }
-
-      .form-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 15px;
-      }
-      @media (max-width: 600px) {
-        .form-row {
-          grid-template-columns: 1fr;
+      @keyframes shimmer {
+        0% {
+          background-position: 100% 0;
+        }
+        100% {
+          background-position: -100% 0;
         }
       }
-
-      button {
-        background: #3498db;
-        color: white;
-        padding: 12px 20px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: 500;
-        font-size: 14px;
+      #toastContainer {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 2000;
+        max-width: 100vw;
+        pointer-events: none;
       }
-      button:hover {
-        background: #2980b9;
-      }
-      button.success {
-        background: #27ae60;
-      }
-      button.success:hover {
-        background: #229954;
-      }
-      button.danger {
-        background: #e74c3c;
-      }
-      button.danger:hover {
-        background: #c0392b;
-      }
-
-      .response {
-        background: #f8f9fa;
-        border-left: 4px solid #3498db;
-        padding: 15px;
-        border-radius: 4px;
-        font-family: "Monaco", monospace;
-        font-size: 13px;
-        overflow-x: auto;
-      }
-      .response.success {
-        border-left-color: #27ae60;
-        background: #f0fdf4;
-      }
-      .response.error {
-        border-left-color: #e74c3c;
-        background: #fef2f2;
-      }
-
-      .list {
-        margin-top: 15px;
-      }
-      .item {
-        background: #f8f9fa;
-        padding: 12px;
+      #toastContainer .toast {
+        pointer-events: auto;
         margin-bottom: 10px;
-        border-radius: 4px;
-        border-left: 4px solid #3498db;
+        min-width: 250px;
+        max-width: calc(100vw - 40px);
       }
-      .item strong {
-        color: #2c3e50;
-      }
-      .item small {
-        color: #7f8c8d;
-      }
-
-      .status {
-        display: inline-block;
-        padding: 3px 8px;
-        border-radius: 3px;
-        font-size: 12px;
-        font-weight: 500;
-      }
-      .status.active {
-        background: #d4edda;
-        color: #155724;
-      }
-      .status.inactive {
-        background: #f8d7da;
-        color: #721c24;
-      }
-
-      .loading {
-        display: none;
-        color: #3498db;
-        font-style: italic;
-      }
-
-      .request-card {
-        background: white;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        padding: 16px;
-        margin-bottom: 12px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-      }
-      .request-card:hover {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-      }
-      .request-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: start;
-        margin-bottom: 12px;
-      }
-      .request-title {
-        font-size: 16px;
-        font-weight: 600;
-        color: #2c3e50;
-        margin: 0;
-      }
-      .request-meta {
-        font-size: 12px;
-        color: #7f8c8d;
-        margin: 4px 0;
-      }
-      .badge {
-        display: inline-block;
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-      .badge.status-new {
-        background: #e3f2fd;
-        color: #1976d2;
-      }
-      .badge.status-in_progress {
-        background: #fff3e0;
-        color: #f57c00;
-      }
-      .badge.status-in_review {
-        background: #f3e5f5;
-        color: #7b1fa2;
-      }
-      .badge.status-approved {
-        background: #e8f5e9;
-        color: #388e3c;
-      }
-      .badge.priority-low {
-        background: #f5f5f5;
-        color: #616161;
-      }
-      .badge.priority-medium {
-        background: #fff9c4;
-        color: #f9a825;
-      }
-      .badge.priority-high {
-        background: #ffe0b2;
-        color: #e65100;
-      }
-      .badge.priority-urgent {
-        background: #ffcdd2;
-        color: #c62828;
-      }
-      .badge.type {
-        background: #e0f2f1;
-        color: #00695c;
-      }
-      .results-summary {
-        background: #f8f9fa;
-        padding: 12px 16px;
-        border-radius: 6px;
-        margin-bottom: 16px;
-        font-size: 14px;
-        color: #495057;
+      @media (max-width: 992px) {
+        .list-scroll {
+          max-height: 50vh;
+        }
+        #toastContainer {
+          top: 10px;
+          right: 10px;
+        }
+        #toastContainer .toast {
+          min-width: 200px;
+          max-width: calc(100vw - 20px);
+          font-size: 0.9rem;
+        }
       }
     </style>
   </head>
   <body>
-    <header>
-      <h1>📋 Reviso Demand Manager</h1>
-      <p class="subtitle">API REST para Gerenciamento de Requisições</p>
-    </header>
-
-    <div class="container">
-      <!-- Seção Clientes -->
-      <div class="section">
-        <h2>👥 Clientes</h2>
-
-        <h3 style="margin-top: 20px; margin-bottom: 10px">
-          Criar Novo Cliente
-        </h3>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="clientName">Nome *</label>
-            <input
-              type="text"
-              id="clientName"
-              placeholder="Ex: Agência Orion"
-            />
-          </div>
-          <div class="form-group">
-            <label for="clientSegment">Segmento</label>
-            <input
-              type="text"
-              id="clientSegment"
-              placeholder="Ex: Publicidade"
-            />
-          </div>
-        </div>
-        <button class="success" onclick="createClient()">Criar Cliente</button>
-        <div class="loading" id="clientLoading">Processando...</div>
-
-        <div
-          class="response"
-          id="clientResponse"
-          style="display: none; margin-top: 15px"
-        ></div>
-
-        <h3 style="margin-top: 30px; margin-bottom: 10px">Listar Clientes</h3>
-        <button onclick="listClients()">Carregar Clientes</button>
-        <div class="loading" id="listLoading">Carregando...</div>
-        <div class="list" id="clientList"></div>
+    <nav class="navbar navbar-dark bg-dark mb-3">
+      <div class="container-fluid">
+        <span class="navbar-brand mb-0 h1">Reviso - Admin Console</span>
       </div>
+    </nav>
 
-      <!-- Seção Requisições -->
-      <div class="section">
-        <h2>📝 Requisições</h2>
+    <div class="container-fluid">
+      <ul class="nav nav-pills mb-3" id="mainTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link active"
+            id="tab-cliente"
+            data-bs-toggle="pill"
+            data-bs-target="#pane-clientes"
+            type="button"
+            role="tab"
+          >
+            Clientes
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="tab-cadastrar"
+            data-bs-toggle="pill"
+            data-bs-target="#pane-cadastrar"
+            type="button"
+            role="tab"
+          >
+            Cadastrar Requisição de Cliente
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="tab-consultar"
+            data-bs-toggle="pill"
+            data-bs-target="#pane-consultar"
+            type="button"
+            role="tab"
+          >
+            Consultar Requisições
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="tab-workflow"
+            data-bs-toggle="pill"
+            data-bs-target="#pane-workflow"
+            type="button"
+            role="tab"
+          >
+            Workflow
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="tab-eventos"
+            data-bs-toggle="pill"
+            data-bs-target="#pane-eventos"
+            type="button"
+            role="tab"
+          >
+            Eventos
+          </button>
+        </li>
+      </ul>
 
-        <h3 style="margin-top: 20px; margin-bottom: 10px">
-          Criar Nova Requisição
-        </h3>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="requestClientId">ID do Cliente *</label>
-            <input
-              type="text"
-              id="requestClientId"
-              placeholder="UUID do cliente"
-            />
-          </div>
-          <div class="form-group">
-            <label for="requestTitle">Título *</label>
-            <input
-              type="text"
-              id="requestTitle"
-              placeholder="Ex: Novo Banner"
-            />
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="requestDescription">Descrição</label>
-          <textarea
-            id="requestDescription"
-            placeholder="Detalhes da requisição"
-          ></textarea>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="requestType">Tipo</label>
-            <select id="requestType">
-              <option value="">Selecione...</option>
-              <option value="POST">POST</option>
-              <option value="STORY">STORY</option>
-              <option value="BANNER">BANNER</option>
-              <option value="LANDING_PAGE">LANDING_PAGE</option>
-              <option value="TRAFFIC">TRAFFIC</option>
-              <option value="EMAIL">EMAIL</option>
-              <option value="VIDEO">VIDEO</option>
-              <option value="OTHER">OTHER</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="requestPriority">Prioridade</label>
-            <select id="requestPriority">
-              <option value="">Selecione...</option>
-              <option value="LOW">LOW</option>
-              <option value="MEDIUM">MEDIUM</option>
-              <option value="HIGH">HIGH</option>
-              <option value="URGENT">URGENT</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="requestDueDate">Data de Vencimento</label>
-          <input type="datetime-local" id="requestDueDate" />
-        </div>
-
-        <button class="success" onclick="createRequest()">
-          Criar Requisição
-        </button>
-        <div class="loading" id="requestLoading">Processando...</div>
-
+      <div class="tab-content" id="tabContent">
         <div
-          class="response"
-          id="requestResponse"
-          style="display: none; margin-top: 15px"
-        ></div>
-
-        <h3 style="margin-top: 30px; margin-bottom: 10px">
-          🔍 Busca Avançada de Requisições
-        </h3>
-
-        <div
-          style="
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 15px;
-          "
+          class="tab-pane fade show active"
+          id="pane-clientes"
+          role="tabpanel"
         >
-          <div class="form-group">
-            <label for="filterClientId">ID do Cliente</label>
-            <input
-              type="text"
-              id="filterClientId"
-              placeholder="UUID do cliente"
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="filterStatus">Status</label>
-            <select id="filterStatus">
-              <option value="">Todos</option>
-              <option value="NEW">NEW</option>
-              <option value="IN_PROGRESS">IN_PROGRESS</option>
-              <option value="IN_REVIEW">IN_REVIEW</option>
-              <option value="CHANGES_REQUESTED">CHANGES_REQUESTED</option>
-              <option value="APPROVED">APPROVED</option>
-              <option value="DELIVERED">DELIVERED</option>
-              <option value="CLOSED">CLOSED</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="filterPriority">Prioridade</label>
-            <select id="filterPriority">
-              <option value="">Todas</option>
-              <option value="LOW">LOW</option>
-              <option value="MEDIUM">MEDIUM</option>
-              <option value="HIGH">HIGH</option>
-              <option value="URGENT">URGENT</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="filterType">Tipo</label>
-            <select id="filterType">
-              <option value="">Todos</option>
-              <option value="POST">POST</option>
-              <option value="STORY">STORY</option>
-              <option value="BANNER">BANNER</option>
-              <option value="LANDING_PAGE">LANDING_PAGE</option>
-              <option value="TRAFFIC">TRAFFIC</option>
-              <option value="EMAIL">EMAIL</option>
-              <option value="VIDEO">VIDEO</option>
-              <option value="OTHER">OTHER</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="filterCreatedFrom">Criado de</label>
-            <input type="datetime-local" id="filterCreatedFrom" />
-          </div>
-
-          <div class="form-group">
-            <label for="filterCreatedTo">Criado até</label>
-            <input type="datetime-local" id="filterCreatedTo" />
-          </div>
-
-          <div class="form-group">
-            <label for="filterDueBefore">Vencimento até</label>
-            <input type="datetime-local" id="filterDueBefore" />
-          </div>
-
-          <div class="form-group">
-            <label for="filterPage">Página</label>
-            <input
-              type="number"
-              id="filterPage"
-              placeholder="0"
-              min="0"
-              value="0"
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="filterSize">Itens por página</label>
-            <input
-              type="number"
-              id="filterSize"
-              placeholder="20"
-              min="1"
-              max="100"
-              value="20"
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="filterSortBy">Ordenar por</label>
-            <select id="filterSortBy">
-              <option value="createdAt">Criado em</option>
-              <option value="dueDate">Vencimento</option>
-              <option value="title">Título</option>
-              <option value="priority">Prioridade</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="filterDirection">Direção</label>
-            <select id="filterDirection">
-              <option value="desc">Descendente</option>
-              <option value="asc">Ascendente</option>
-            </select>
+          <div class="row g-3">
+            <div class="col-lg-4">
+              <div class="card card-shadow">
+                <div class="card-body">
+                  <h5 class="card-title">Criar cliente</h5>
+                  <div class="mb-3">
+                    <label class="form-label">Nome *</label>
+                    <input
+                      class="form-control"
+                      id="clientName"
+                      placeholder="Ex: Agência Orion"
+                    />
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Segmento</label>
+                    <input
+                      class="form-control"
+                      id="clientSegment"
+                      placeholder="Ex: Publicidade"
+                    />
+                  </div>
+                  <button
+                    class="btn btn-success w-100"
+                    onclick="createClient()"
+                  >
+                    Criar
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-8">
+              <div class="card card-shadow">
+                <div class="card-body">
+                  <div
+                    class="d-flex justify-content-between align-items-center mb-2"
+                  >
+                    <h5 class="card-title mb-0">Clientes</h5>
+                    <button
+                      class="btn btn-outline-secondary btn-sm"
+                      onclick="listClients()"
+                    >
+                      Recarregar
+                    </button>
+                  </div>
+                  <div
+                    class="table-responsive list-scroll"
+                    id="clientList"
+                  ></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <button onclick="advancedSearch()" style="margin-right: 10px">
-          🔍 Buscar
-        </button>
-        <button onclick="clearFilters()" style="background: #6c757d">
-          🔄 Limpar
-        </button>
-        <div class="loading" id="advancedSearchLoading">Carregando...</div>
-        <div
-          class="response"
-          id="advancedSearchResponse"
-          style="display: none; margin-top: 15px"
-        ></div>
+        <div class="tab-pane fade" id="pane-cadastrar" role="tabpanel">
+          <div class="row g-3">
+            <div class="col-lg-5 col-xl-4">
+              <div class="card card-shadow">
+                <div class="card-body">
+                  <h5 class="card-title">Cadastrar requisição de cliente</h5>
+                  <p class="text-muted small">
+                    Preencha os campos para abrir uma nova requisição.
+                  </p>
+                  <div class="mb-2">
+                    <label class="form-label">ID do cliente *</label
+                    ><input
+                      class="form-control"
+                      id="requestClientId"
+                      placeholder="UUID do cliente"
+                    />
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Título *</label
+                    ><input
+                      class="form-control"
+                      id="requestTitle"
+                      placeholder="Ex: Novo banner"
+                    />
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Descrição</label
+                    ><textarea
+                      class="form-control"
+                      id="requestDescription"
+                      rows="2"
+                      placeholder="Contexto e links"
+                    ></textarea>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Tipo</label
+                    ><select class="form-select" id="requestType">
+                      <option value="">Selecione...</option>
+                      <option value="POST">Post</option>
+                      <option value="STORY">Story</option>
+                      <option value="BANNER">Banner</option>
+                      <option value="LANDING_PAGE">Landing page</option>
+                      <option value="TRAFFIC">Tráfego</option>
+                      <option value="EMAIL">E-mail</option>
+                      <option value="VIDEO">Vídeo</option>
+                      <option value="OTHER">Outro</option>
+                    </select>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Prioridade</label
+                    ><select class="form-select" id="requestPriority">
+                      <option value="">Selecione...</option>
+                      <option value="LOW">Baixa</option>
+                      <option value="MEDIUM">Média</option>
+                      <option value="HIGH">Alta</option>
+                      <option value="URGENT">Urgente</option>
+                    </select>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Vencimento</label
+                    ><input
+                      type="datetime-local"
+                      class="form-control"
+                      id="requestDueDate"
+                    />
+                  </div>
+                  <button
+                    class="btn btn-success w-100"
+                    onclick="createRequest()"
+                  >
+                    Criar requisição
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-7 col-xl-8">
+              <div class="card card-shadow h-100">
+                <div
+                  class="card-body d-flex align-items-center justify-content-center text-muted"
+                >
+                  <div class="text-center">
+                    <h6 class="mb-2">Dica</h6>
+                    <p class="mb-0">
+                      Após criar, use a aba "Consultar Requisições" para
+                      acompanhar, editar e mover no workflow.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="pane-consultar" role="tabpanel">
+          <div class="row g-3">
+            <div class="col-lg-4">
+              <div class="card card-shadow">
+                <div class="card-body">
+                  <div
+                    class="d-flex justify-content-between align-items-center mb-2"
+                  >
+                    <h6 class="mb-0">Filtros</h6>
+                    <button
+                      class="btn btn-outline-secondary btn-sm"
+                      onclick="clearFilters()"
+                    >
+                      Limpar
+                    </button>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Cliente</label
+                    ><input
+                      class="form-control"
+                      id="filterClientId"
+                      placeholder="UUID"
+                    />
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Status</label
+                    ><select class="form-select" id="filterStatus">
+                      <option value="">Todos</option>
+                      <option value="NEW">Novo</option>
+                      <option value="IN_PROGRESS">Em progresso</option>
+                      <option value="IN_REVIEW">Em revisão</option>
+                      <option value="CHANGES_REQUESTED">
+                        Mudanças solicitadas
+                      </option>
+                      <option value="APPROVED">Aprovado</option>
+                      <option value="DELIVERED">Entregue</option>
+                      <option value="CLOSED">Encerrado</option>
+                    </select>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Prioridade</label
+                    ><select class="form-select" id="filterPriority">
+                      <option value="">Todas</option>
+                      <option value="LOW">Baixa</option>
+                      <option value="MEDIUM">Média</option>
+                      <option value="HIGH">Alta</option>
+                      <option value="URGENT">Urgente</option>
+                    </select>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Tipo</label
+                    ><select class="form-select" id="filterType">
+                      <option value="">Todos</option>
+                      <option value="POST">Post</option>
+                      <option value="STORY">Story</option>
+                      <option value="BANNER">Banner</option>
+                      <option value="LANDING_PAGE">Landing page</option>
+                      <option value="TRAFFIC">Tráfego</option>
+                      <option value="EMAIL">E-mail</option>
+                      <option value="VIDEO">Vídeo</option>
+                      <option value="OTHER">Outro</option>
+                    </select>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Criado de</label
+                    ><input
+                      type="datetime-local"
+                      class="form-control"
+                      id="filterCreatedFrom"
+                    />
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Criado até</label
+                    ><input
+                      type="datetime-local"
+                      class="form-control"
+                      id="filterCreatedTo"
+                    />
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Vencimento até</label
+                    ><input
+                      type="datetime-local"
+                      class="form-control"
+                      id="filterDueBefore"
+                    />
+                  </div>
+                  <div class="row g-2 mb-2">
+                    <div class="col">
+                      <label class="form-label">Página</label
+                      ><input
+                        type="number"
+                        class="form-control"
+                        id="filterPage"
+                        value="0"
+                        min="0"
+                      />
+                    </div>
+                    <div class="col">
+                      <label class="form-label">Tamanho</label
+                      ><input
+                        type="number"
+                        class="form-control"
+                        id="filterSize"
+                        value="20"
+                        min="1"
+                        max="100"
+                      />
+                    </div>
+                  </div>
+                  <div class="row g-2 mb-3">
+                    <div class="col">
+                      <label class="form-label">Ordenar por</label
+                      ><select class="form-select" id="filterSortBy">
+                        <option value="createdAt">Criado em</option>
+                        <option value="dueDate">Vencimento</option>
+                        <option value="title">Título</option>
+                        <option value="priority">Prioridade</option>
+                      </select>
+                    </div>
+                    <div class="col">
+                      <label class="form-label">Direção</label
+                      ><select class="form-select" id="filterDirection">
+                        <option value="desc">Desc</option>
+                        <option value="asc">Asc</option>
+                      </select>
+                    </div>
+                  </div>
+                  <button
+                    class="btn btn-primary w-100"
+                    onclick="advancedSearch()"
+                  >
+                    Buscar
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-8">
+              <div class="card card-shadow mb-3">
+                <div class="card-body">
+                  <div
+                    class="d-flex justify-content-between align-items-center mb-2"
+                  >
+                    <h5 class="mb-0">Requisições</h5>
+                    <div>
+                      <span class="text-muted small" id="reqSummary"></span>
+                    </div>
+                  </div>
+                  <div id="requestList" class="list-group list-scroll"></div>
+                </div>
+              </div>
+
+              <div
+                class="card card-shadow"
+                id="detailCard"
+                style="display: none"
+              >
+                <div class="card-body">
+                  <div
+                    class="d-flex justify-content-between align-items-start mb-2"
+                  >
+                    <div>
+                      <h5 id="detailTitle" class="mb-1"></h5>
+                      <div class="text-muted small" id="detailId"></div>
+                    </div>
+                    <div class="btn-group btn-group-sm">
+                      <button
+                        class="btn btn-outline-secondary"
+                        onclick="copySelectedId()"
+                      >
+                        Copiar ID
+                      </button>
+                      <button
+                        class="btn btn-outline-primary"
+                        onclick="openWorkflowTab()"
+                      >
+                        Abrir no Workflow
+                      </button>
+                    </div>
+                  </div>
+                  <div class="mb-2" id="detailBadges"></div>
+                  <p class="text-secondary" id="detailDescription"></p>
+                  <div class="row g-2 mb-3">
+                    <div class="col-md-4">
+                      <small class="text-muted">Cliente</small>
+                      <div id="detailClient"></div>
+                    </div>
+                    <div class="col-md-4">
+                      <small class="text-muted">Vencimento</small>
+                      <div id="detailDue"></div>
+                    </div>
+                    <div class="col-md-4">
+                      <small class="text-muted">Revisões</small>
+                      <div id="detailRevision"></div>
+                    </div>
+                  </div>
+                  <div class="row g-2 mb-4">
+                    <div class="col-md-6">
+                      <small class="text-muted">Responsável</small>
+                      <div id="detailAssignee"></div>
+                    </div>
+                    <div class="col-md-6">
+                      <small class="text-muted">Criado/Atualizado</small>
+                      <div id="detailDates"></div>
+                    </div>
+                  </div>
+
+                  <div class="row g-3">
+                    <div class="col-lg-6">
+                      <h6>Alterar status</h6>
+                      <div class="mb-2">
+                        <label class="form-label">Novo status</label
+                        ><select class="form-select" id="wfStatus">
+                          <option value="">Selecione</option>
+                          <option value="NEW">Novo</option>
+                          <option value="IN_PROGRESS">Em progresso</option>
+                          <option value="IN_REVIEW">Em revisão</option>
+                          <option value="CHANGES_REQUESTED">
+                            Mudanças solicitadas
+                          </option>
+                          <option value="APPROVED">Aprovado</option>
+                          <option value="DELIVERED">Entregue</option>
+                          <option value="CLOSED">Encerrado</option>
+                        </select>
+                      </div>
+                      <div class="mb-2">
+                        <label class="form-label">Mensagem</label
+                        ><input
+                          class="form-control"
+                          id="wfStatusMsg"
+                          placeholder="Contexto"
+                        />
+                      </div>
+                      <button
+                        class="btn btn-primary w-100"
+                        onclick="changeStatusAction()"
+                      >
+                        Salvar
+                      </button>
+                    </div>
+                    <div class="col-lg-6">
+                      <h6>Comentário</h6>
+                      <div class="mb-2">
+                        <textarea
+                          class="form-control"
+                          id="wfComment"
+                          rows="3"
+                          placeholder="Mensagem"
+                        ></textarea>
+                      </div>
+                      <button
+                        class="btn btn-outline-primary w-100"
+                        onclick="addCommentAction()"
+                      >
+                        Adicionar comentário
+                      </button>
+                    </div>
+                    <div class="col-lg-6">
+                      <h6>Revisão</h6>
+                      <div class="mb-2">
+                        <textarea
+                          class="form-control"
+                          id="wfRevisionMsg"
+                          rows="2"
+                          placeholder="Detalhes"
+                        ></textarea>
+                      </div>
+                      <button
+                        class="btn btn-outline-secondary w-100"
+                        onclick="addRevisionAction()"
+                      >
+                        Registrar revisão
+                      </button>
+                    </div>
+                    <div class="col-lg-6">
+                      <h6>Atribuir</h6>
+                      <div class="mb-2">
+                        <input
+                          class="form-control"
+                          id="wfAssignee"
+                          placeholder="UUID do responsável"
+                        />
+                      </div>
+                      <button
+                        class="btn btn-outline-dark w-100"
+                        onclick="assignAction()"
+                      >
+                        Atribuir
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="pane-workflow" role="tabpanel">
+          <div class="card card-shadow">
+            <div class="card-body">
+              <h5 class="card-title">Workflow rápido</h5>
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label">ID da requisição *</label>
+                  <input
+                    class="form-control"
+                    id="workflowRequestId"
+                    placeholder="UUID"
+                  />
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">ID do ator (opcional)</label>
+                  <input
+                    class="form-control"
+                    id="workflowActorId"
+                    placeholder="UUID"
+                  />
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                  <button
+                    class="btn btn-outline-secondary w-100"
+                    onclick="prefillWorkflowFromSelection()"
+                  >
+                    Usar selecionada
+                  </button>
+                </div>
+              </div>
+              <hr />
+              <div class="row g-3">
+                <div class="col-lg-6">
+                  <h6>Alterar status</h6>
+                  <select class="form-select mb-2" id="workflowNewStatus">
+                    <option value="">Selecione...</option>
+                    <option value="NEW">Novo</option>
+                    <option value="IN_PROGRESS">Em progresso</option>
+                    <option value="IN_REVIEW">Em revisão</option>
+                    <option value="CHANGES_REQUESTED">
+                      Mudanças solicitadas
+                    </option>
+                    <option value="APPROVED">Aprovado</option>
+                    <option value="DELIVERED">Entregue</option>
+                    <option value="CLOSED">Encerrado</option>
+                  </select>
+                  <input
+                    class="form-control mb-2"
+                    id="workflowStatusMessage"
+                    placeholder="Mensagem"
+                  />
+                  <button
+                    class="btn btn-primary w-100"
+                    onclick="changeStatusWorkflow()"
+                  >
+                    Alterar
+                  </button>
+                </div>
+                <div class="col-lg-6">
+                  <h6>Comentário</h6>
+                  <textarea
+                    class="form-control mb-2"
+                    id="workflowComment"
+                    rows="2"
+                    placeholder="Mensagem"
+                  ></textarea>
+                  <button
+                    class="btn btn-outline-primary w-100"
+                    onclick="addCommentWorkflow()"
+                  >
+                    Comentar
+                  </button>
+                </div>
+                <div class="col-lg-6">
+                  <h6>Revisão</h6>
+                  <textarea
+                    class="form-control mb-2"
+                    id="workflowRevisionMessage"
+                    rows="2"
+                    placeholder="Detalhes"
+                  ></textarea>
+                  <button
+                    class="btn btn-outline-secondary w-100"
+                    onclick="addRevisionWorkflow()"
+                  >
+                    Registrar
+                  </button>
+                </div>
+                <div class="col-lg-6">
+                  <h6>Atribuir</h6>
+                  <input
+                    class="form-control mb-2"
+                    id="workflowAssigneeId"
+                    placeholder="UUID do responsável"
+                  />
+                  <button
+                    class="btn btn-outline-dark w-100"
+                    onclick="assignWorkflow()"
+                  >
+                    Atribuir
+                  </button>
+                </div>
+              </div>
+              <div class="mt-3 d-flex gap-2">
+                <button class="btn btn-secondary" onclick="listEvents()">
+                  Carregar eventos
+                </button>
+                <div
+                  class="spinner-border spinner-border-sm text-primary"
+                  role="status"
+                  id="workflowLoading"
+                  style="display: none"
+                ></div>
+              </div>
+              <div
+                class="mt-3"
+                id="workflowResponse"
+                style="display: none"
+              ></div>
+              <div class="mt-3" id="workflowEvents" style="display: none"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="pane-eventos" role="tabpanel">
+          <div class="card card-shadow">
+            <div class="card-body">
+              <div
+                class="d-flex justify-content-between align-items-center mb-2"
+              >
+                <h5 class="card-title mb-0">Eventos da requisição</h5>
+                <button
+                  class="btn btn-outline-secondary btn-sm"
+                  onclick="loadEventsFromSelection()"
+                >
+                  Recarregar
+                </button>
+              </div>
+              <div id="eventsList"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
+    <div id="toastContainer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
       const API_URL = "http://localhost:8080";
+      let requestsCache = [];
+      let selectedRequest = null;
 
-      function showResponse(elementId, data, isError = false) {
-        const element = document.getElementById(elementId);
-        element.textContent = JSON.stringify(data, null, 2);
-        element.className = `response ${isError ? "error" : "success"}`;
-        element.style.display = "block";
+      function showToast(message, type = "success") {
+        const toastEl = document.createElement("div");
+        toastEl.className = `toast align-items-center text-bg-${type} border-0`;
+        toastEl.setAttribute("role", "alert");
+        toastEl.innerHTML = `<div class="d-flex"><div class="toast-body">${message}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>`;
+        document.getElementById("toastContainer").appendChild(toastEl);
+        const toast = new bootstrap.Toast(toastEl, { delay: 2500 });
+        toast.show();
+        toastEl.addEventListener("hidden.bs.toast", () => toastEl.remove());
+      }
+
+      function copyText(text) {
+        if (!text) return;
+        navigator.clipboard
+          .writeText(text)
+          .then(() => showToast("Copiado", "primary"));
+      }
+
+      function statusBadge(status) {
+        const map = {
+          NEW: "secondary",
+          IN_PROGRESS: "warning",
+          IN_REVIEW: "info",
+          CHANGES_REQUESTED: "danger",
+          APPROVED: "success",
+          DELIVERED: "primary",
+          CLOSED: "dark",
+        };
+        const color = map[status] || "secondary";
+        return `<span class="badge text-bg-${color} status-badge">${status}</span>`;
+      }
+
+      function priorityBadge(priority) {
+        const map = {
+          LOW: "secondary",
+          MEDIUM: "info",
+          HIGH: "warning",
+          URGENT: "danger",
+        };
+        const color = map[priority] || "secondary";
+        return `<span class="badge text-bg-${color} status-badge">${priority}</span>`;
+      }
+
+      function setLoading(targetId, show) {
+        const el = document.getElementById(targetId);
+        if (!el) return;
+        el.style.display = show ? "inline-block" : "none";
+      }
+
+      function renderClients(clients) {
+        const container = document.getElementById("clientList");
+        if (!clients || clients.length === 0) {
+          container.innerHTML = '<p class="text-muted">Nenhum cliente</p>';
+          return;
+        }
+        let html =
+          '<table class="table table-sm align-middle"><thead><tr><th>Nome</th><th>Segmento</th><th>ID</th><th></th></tr></thead><tbody>';
+        clients.forEach((c) => {
+          html += `<tr><td>${c.name}</td><td>${
+            c.segment || "-"
+          }</td><td><code>${
+            c.id
+          }</code></td><td><button class="btn btn-outline-secondary btn-sm" onclick="copyText('${
+            c.id
+          }')">Copiar ID</button></td></tr>`;
+        });
+        html += "</tbody></table>";
+        container.innerHTML = html;
       }
 
       async function createClient() {
         const name = document.getElementById("clientName").value;
         const segment = document.getElementById("clientSegment").value;
-
-        if (!name) {
-          alert("Nome é obrigatório!");
-          return;
-        }
-
-        document.getElementById("clientLoading").style.display = "block";
-
+        if (!name) return showToast("Nome é obrigatório", "danger");
         try {
-          const response = await fetch(`${API_URL}/clients`, {
+          const res = await fetch(`${API_URL}/clients`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name, segment }),
           });
-
-          const data = await response.json();
-
-          if (response.ok) {
-            showResponse("clientResponse", data, false);
+          const data = await res.json();
+          if (res.ok) {
+            showToast("Cliente criado", "success");
             document.getElementById("clientName").value = "";
             document.getElementById("clientSegment").value = "";
+            listClients();
           } else {
-            showResponse("clientResponse", data, true);
+            showToast(data.message || "Erro ao criar", "danger");
           }
-        } catch (error) {
-          showResponse("clientResponse", { error: error.message }, true);
-        } finally {
-          document.getElementById("clientLoading").style.display = "none";
+        } catch (e) {
+          showToast(e.message, "danger");
         }
       }
 
       async function listClients() {
-        document.getElementById("listLoading").style.display = "block";
-
+        const container = document.getElementById("clientList");
+        container.innerHTML =
+          '<div class="skeleton rounded" style="height:80px;"></div>';
         try {
-          const response = await fetch(`${API_URL}/clients`);
-          const clients = await response.json();
-
-          const list = document.getElementById("clientList");
-          list.innerHTML = "";
-
-          if (clients.length === 0) {
-            list.innerHTML = "<p>Nenhum cliente encontrado</p>";
-            return;
-          }
-
-          clients.forEach((client) => {
-            const item = document.createElement("div");
-            item.className = "item";
-            item.innerHTML = `
-                        <strong>${client.name}</strong>
-                        <span class="status ${
-                          client.active ? "active" : "inactive"
-                        }">${client.active ? "Ativo" : "Inativo"}</span>
-                        <br><small>ID: ${client.id}</small>
-                        <br><small>Segmento: ${client.segment || "N/A"}</small>
-                        <br><small>Criado em: ${new Date(
-                          client.createdAt
-                        ).toLocaleString("pt-BR")}</small>
-                    `;
-            list.appendChild(item);
-          });
-        } catch (error) {
-          alert("Erro ao carregar clientes: " + error.message);
-        } finally {
-          document.getElementById("listLoading").style.display = "none";
+          const res = await fetch(`${API_URL}/clients`);
+          const data = await res.json();
+          renderClients(data);
+        } catch (e) {
+          showToast(e.message, "danger");
         }
+      }
+
+      function clearFilters() {
+        [
+          "filterClientId",
+          "filterStatus",
+          "filterPriority",
+          "filterType",
+          "filterCreatedFrom",
+          "filterCreatedTo",
+          "filterDueBefore",
+        ].forEach((id) => (document.getElementById(id).value = ""));
+        document.getElementById("filterPage").value = 0;
+        document.getElementById("filterSize").value = 20;
+        document.getElementById("filterSortBy").value = "createdAt";
+        document.getElementById("filterDirection").value = "desc";
+        document.getElementById("requestList").innerHTML = "";
+        document.getElementById("reqSummary").textContent = "";
       }
 
       async function createRequest() {
         const clientId = document.getElementById("requestClientId").value;
         const title = document.getElementById("requestTitle").value;
+        if (!clientId || !title)
+          return showToast("Cliente e título são obrigatórios", "danger");
         const description = document.getElementById("requestDescription").value;
         const type = document.getElementById("requestType").value || null;
         const priority =
           document.getElementById("requestPriority").value || null;
         const dueDate = document.getElementById("requestDueDate").value;
-
-        if (!clientId || !title) {
-          alert("ID do Cliente e Título são obrigatórios!");
-          return;
-        }
-
-        document.getElementById("requestLoading").style.display = "block";
-
+        let dueDateISO;
+        if (dueDate) dueDateISO = new Date(dueDate).toISOString();
+        const body = {
+          clientId,
+          title,
+          description: description || undefined,
+          type: type || undefined,
+          priority: priority || undefined,
+          dueDate: dueDateISO,
+        };
         try {
-          // Converte datetime-local para ISO 8601 com timezone
-          let dueDateISO = undefined;
-          if (dueDate) {
-            const localDate = new Date(dueDate);
-            dueDateISO = localDate.toISOString(); // Formato: 2026-01-05T19:59:00.000Z
-          }
-
-          const body = {
-            clientId,
-            title,
-            description: description || undefined,
-            type: type || undefined,
-            priority: priority || undefined,
-            dueDate: dueDateISO,
-          };
-
-          // Remove undefined values
-          Object.keys(body).forEach(
-            (key) => body[key] === undefined && delete body[key]
-          );
-
-          const response = await fetch(`${API_URL}/requests`, {
+          const res = await fetch(`${API_URL}/requests`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
           });
-
-          const data = await response.json();
-
-          if (response.ok) {
-            showResponse("requestResponse", data, false);
+          const data = await res.json();
+          if (res.ok) {
+            showToast("Requisição criada", "success");
             document.getElementById("requestClientId").value = "";
             document.getElementById("requestTitle").value = "";
             document.getElementById("requestDescription").value = "";
             document.getElementById("requestType").value = "";
             document.getElementById("requestPriority").value = "";
             document.getElementById("requestDueDate").value = "";
+            advancedSearch();
+            selectRequest(data);
           } else {
-            showResponse("requestResponse", data, true);
+            showToast(data.message || "Erro ao criar", "danger");
           }
-        } catch (error) {
-          showResponse("requestResponse", { error: error.message }, true);
-        } finally {
-          document.getElementById("requestLoading").style.display = "none";
+        } catch (e) {
+          showToast(e.message, "danger");
         }
-      }
-
-      async function getRequestsByClient() {
-        const clientId = document.getElementById("clientIdSearch").value;
-
-        if (!clientId) {
-          alert("ID do Cliente é obrigatório!");
-          return;
-        }
-
-        document.getElementById("searchLoading").style.display = "block";
-        document.getElementById("searchResponse").style.display = "none";
-
-        try {
-          const response = await fetch(
-            `${API_URL}/requests?clientId=${clientId}&size=50`
-          );
-          const data = await response.json();
-
-          if (response.ok) {
-            if (data.content && data.content.length > 0) {
-              renderRequestsList(data);
-            } else {
-              document.getElementById("searchResponse").innerHTML =
-                '<div style="padding: 20px; text-align: center; color: #7f8c8d;">📭 Nenhuma requisição encontrada para este cliente</div>';
-              document.getElementById("searchResponse").className = "response";
-              document.getElementById("searchResponse").style.display = "block";
-            }
-          } else {
-            showResponse("searchResponse", data, true);
-          }
-        } catch (error) {
-          showResponse("searchResponse", { error: error.message }, true);
-        } finally {
-          document.getElementById("searchLoading").style.display = "none";
-        }
-      }
-
-      function clearFilters() {
-        document.getElementById("filterClientId").value = "";
-        document.getElementById("filterStatus").value = "";
-        document.getElementById("filterPriority").value = "";
-        document.getElementById("filterType").value = "";
-        document.getElementById("filterCreatedFrom").value = "";
-        document.getElementById("filterCreatedTo").value = "";
-        document.getElementById("filterDueBefore").value = "";
-        document.getElementById("filterPage").value = "0";
-        document.getElementById("filterSize").value = "20";
-        document.getElementById("filterSortBy").value = "createdAt";
-        document.getElementById("filterDirection").value = "desc";
-        document.getElementById("advancedSearchResponse").style.display =
-          "none";
       }
 
       async function advancedSearch() {
-        const clientId = document.getElementById("filterClientId").value;
         const status = document.getElementById("filterStatus").value;
         const priority = document.getElementById("filterPriority").value;
         const type = document.getElementById("filterType").value;
+        const clientId = document.getElementById("filterClientId").value;
         const createdFrom = document.getElementById("filterCreatedFrom").value;
         const createdTo = document.getElementById("filterCreatedTo").value;
         const dueBefore = document.getElementById("filterDueBefore").value;
@@ -717,142 +933,428 @@
         const size = document.getElementById("filterSize").value || "20";
         const sortBy = document.getElementById("filterSortBy").value;
         const direction = document.getElementById("filterDirection").value;
-
-        document.getElementById("advancedSearchLoading").style.display =
-          "block";
-        document.getElementById("advancedSearchResponse").style.display =
-          "none";
-
+        const list = document.getElementById("requestList");
+        list.innerHTML =
+          '<div class="skeleton rounded" style="height:120px;"></div>';
+        let url = `${API_URL}/requests?page=${page}&size=${size}&sort=${sortBy},${direction}`;
+        if (clientId) url += `&clientId=${clientId}`;
+        if (status) url += `&status=${status}`;
+        if (priority) url += `&priority=${priority}`;
+        if (type) url += `&type=${type}`;
+        if (createdFrom)
+          url += `&createdFrom=${encodeURIComponent(
+            new Date(createdFrom).toISOString()
+          )}`;
+        if (createdTo)
+          url += `&createdTo=${encodeURIComponent(
+            new Date(createdTo).toISOString()
+          )}`;
+        if (dueBefore)
+          url += `&dueBefore=${encodeURIComponent(
+            new Date(dueBefore).toISOString()
+          )}`;
         try {
-          let url = `${API_URL}/requests?page=${page}&size=${size}&sort=${sortBy},${direction}`;
-
-          if (clientId) url += `&clientId=${clientId}`;
-          if (status) url += `&status=${status}`;
-          if (priority) url += `&priority=${priority}`;
-          if (type) url += `&type=${type}`;
-
-          if (createdFrom) {
-            const createdFromISO = new Date(createdFrom).toISOString();
-            url += `&createdFrom=${encodeURIComponent(createdFromISO)}`;
-          }
-
-          if (createdTo) {
-            const createdToISO = new Date(createdTo).toISOString();
-            url += `&createdTo=${encodeURIComponent(createdToISO)}`;
-          }
-
-          if (dueBefore) {
-            const dueBeforeISO = new Date(dueBefore).toISOString();
-            url += `&dueBefore=${encodeURIComponent(dueBeforeISO)}`;
-          }
-
-          const response = await fetch(url);
-          const data = await response.json();
-
-          if (response.ok) {
-            if (data.content && data.content.length > 0) {
-              renderRequestsList(data, "advancedSearchResponse");
-            } else {
-              document.getElementById("advancedSearchResponse").innerHTML =
-                '<div style="padding: 20px; text-align: center; color: #7f8c8d;">📭 Nenhuma requisição encontrada com esses critérios</div>';
-              document.getElementById("advancedSearchResponse").className =
-                "response";
-              document.getElementById("advancedSearchResponse").style.display =
-                "block";
-            }
-          } else {
-            showResponse("advancedSearchResponse", data, true);
-          }
-        } catch (error) {
-          showResponse(
-            "advancedSearchResponse",
-            { error: error.message },
-            true
-          );
-        } finally {
-          document.getElementById("advancedSearchLoading").style.display =
-            "none";
+          const res = await fetch(url);
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || "Erro na busca");
+          requestsCache = data.content || [];
+          renderRequestsList(data);
+        } catch (e) {
+          list.innerHTML = `<div class="alert alert-danger">${e.message}</div>`;
+          showToast(e.message, "danger");
         }
       }
 
-      function renderRequestsList(data, containerId = "searchResponse") {
-        const container = document.getElementById(containerId);
-
-        const statusMap = {
-          NEW: "status-new",
-          IN_PROGRESS: "status-in_progress",
-          IN_REVIEW: "status-in_review",
-          APPROVED: "status-approved",
-        };
-
-        const priorityMap = {
-          LOW: "priority-low",
-          MEDIUM: "priority-medium",
-          HIGH: "priority-high",
-          URGENT: "priority-urgent",
-        };
-
-        let html = `
-          <div class="results-summary">
-            <strong>📊 ${data.totalElements}</strong> requisição${
-          data.totalElements !== 1 ? "ões" : ""
-        } encontrada${data.totalElements !== 1 ? "s" : ""}
-            (Página ${data.number + 1} de ${data.totalPages})
+      function renderRequestsList(pageData) {
+        const list = document.getElementById("requestList");
+        if (!pageData.content || pageData.content.length === 0) {
+          list.innerHTML =
+            '<div class="alert alert-secondary">Nenhuma requisição encontrada</div>';
+          document.getElementById("reqSummary").textContent = "";
+          return;
+        }
+        document.getElementById("reqSummary").textContent = `${
+          pageData.totalElements
+        } itens · página ${pageData.number + 1} / ${pageData.totalPages}`;
+        list.innerHTML = pageData.content
+          .map((req) => {
+            const created = new Date(req.createdAt).toLocaleString("pt-BR");
+            const due = req.dueDate
+              ? new Date(req.dueDate).toLocaleString("pt-BR")
+              : "Não definido";
+            return `<div class="list-group-item list-group-item-action d-flex justify-content-between align-items-start" onclick="selectRequestFromList('${
+              req.id
+            }')">
+          <div class="me-2">
+            <div class="d-flex align-items-center gap-2 mb-1"><strong>${
+              req.title
+            }</strong> ${statusBadge(req.status)} ${priorityBadge(
+              req.priority
+            )}</div>
+            <div class="text-muted small">ID ${req.id.substring(
+              0,
+              8
+            )}... · Cliente ${req.clientId.substring(
+              0,
+              8
+            )}... · Criado ${created}</div>
+            <div class="text-muted small">Vencimento: ${due}</div>
           </div>
-        `;
-
-        data.content.forEach((req) => {
-          const createdDate = new Date(req.createdAt).toLocaleString("pt-BR");
-          const dueDate = req.dueDate
-            ? new Date(req.dueDate).toLocaleString("pt-BR")
-            : "Não definido";
-
-          html += `
-            <div class="request-card">
-              <div class="request-header">
-                <div>
-                  <h4 class="request-title">${req.title}</h4>
-                  <div class="request-meta">ID: ${req.id.substring(
-                    0,
-                    8
-                  )}...</div>
-                </div>
-                <div style="text-align: right;">
-                  <div><span class="badge ${statusMap[req.status] || ""}">${
-            req.status
-          }</span></div>
-                  <div style="margin-top: 4px;"><span class="badge ${
-                    priorityMap[req.priority] || ""
-                  }">${req.priority}</span></div>
-                </div>
-              </div>
-
-              ${
-                req.description
-                  ? `<p style="color: #495057; margin: 8px 0; font-size: 14px;">${req.description}</p>`
-                  : ""
-              }
-
-              <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; color: #6c757d;">
-                <div><span class="badge type">${req.type}</span></div>
-                <div>📅 Vencimento: <strong>${dueDate}</strong></div>
-                <div>🔄 Revisões: <strong>${req.revisionCount}</strong></div>
-              </div>
-
-              <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e9ecef; font-size: 12px; color: #adb5bd;">
-                Criado em ${createdDate}
-              </div>
-            </div>
-          `;
-        });
-
-        container.innerHTML = html;
-        container.className = "response";
-        container.style.display = "block";
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary" onclick="event.stopPropagation(); copyText('${
+              req.id
+            }')">Copiar ID</button>
+            <button class="btn btn-outline-primary" onclick="event.stopPropagation(); selectRequest(req); openWorkflowTab();">Abrir Workflow</button>
+          </div>
+        </div>`;
+          })
+          .join("");
       }
 
-      // Carregar clientes ao iniciar
-      listClients();
+      function selectRequestFromList(id) {
+        const req = requestsCache.find((r) => r.id === id);
+        if (req) selectRequest(req);
+      }
+
+      function selectRequest(req) {
+        selectedRequest = req;
+        document.getElementById("detailCard").style.display = "block";
+        document.getElementById("detailTitle").textContent = req.title;
+        document.getElementById("detailId").innerHTML = `${req.id}`;
+        document.getElementById("detailDescription").textContent =
+          req.description || "Sem descrição";
+        document.getElementById("detailClient").textContent = req.clientId;
+        const due = req.dueDate
+          ? new Date(req.dueDate).toLocaleString("pt-BR")
+          : "Não definido";
+        document.getElementById("detailDue").textContent = due;
+        document.getElementById("detailRevision").textContent =
+          req.revisionCount ?? 0;
+        document.getElementById("detailAssignee").textContent =
+          req.assigneeId || "Não atribuído";
+        const created = new Date(req.createdAt).toLocaleString("pt-BR");
+        const updated = new Date(req.updatedAt).toLocaleString("pt-BR");
+        document.getElementById(
+          "detailDates"
+        ).textContent = `${created} / ${updated}`;
+        document.getElementById("detailBadges").innerHTML = `${statusBadge(
+          req.status
+        )} ${priorityBadge(req.priority)} <span class="badge text-bg-light">${
+          req.type
+        }</span>`;
+        document.getElementById("wfStatus").value = "";
+        document.getElementById("wfStatusMsg").value = "";
+        document.getElementById("wfComment").value = "";
+        document.getElementById("wfRevisionMsg").value = "";
+        document.getElementById("wfAssignee").value = "";
+        document.getElementById("workflowRequestId").value = req.id;
+        loadEventsFromSelection();
+      }
+
+      function copySelectedId() {
+        if (selectedRequest) copyText(selectedRequest.id);
+      }
+
+      function openWorkflowTab() {
+        const tab = new bootstrap.Tab(document.getElementById("tab-workflow"));
+        tab.show();
+        prefillWorkflowFromSelection();
+      }
+
+      function prefillWorkflowFromSelection() {
+        if (!selectedRequest)
+          return showToast("Selecione uma requisição", "warning");
+        document.getElementById("workflowRequestId").value = selectedRequest.id;
+      }
+
+      async function changeStatusAction() {
+        if (!selectedRequest)
+          return showToast("Selecione uma requisição", "warning");
+        const toStatus = document.getElementById("wfStatus").value;
+        const message = document.getElementById("wfStatusMsg").value;
+        if (!toStatus) return showToast("Escolha o status", "warning");
+        await postWorkflow(`/requests/${selectedRequest.id}/status`, {
+          toStatus,
+          message,
+        });
+      }
+
+      async function addCommentAction() {
+        if (!selectedRequest)
+          return showToast("Selecione uma requisição", "warning");
+        const message = document.getElementById("wfComment").value;
+        if (!message) return showToast("Mensagem obrigatória", "warning");
+        await postWorkflow(`/requests/${selectedRequest.id}/comments`, {
+          message,
+        });
+      }
+
+      async function addRevisionAction() {
+        if (!selectedRequest)
+          return showToast("Selecione uma requisição", "warning");
+        const message = document.getElementById("wfRevisionMsg").value;
+        await postWorkflow(`/requests/${selectedRequest.id}/revisions`, {
+          message,
+        });
+      }
+
+      async function assignAction() {
+        if (!selectedRequest)
+          return showToast("Selecione uma requisição", "warning");
+        const assigneeId = document.getElementById("wfAssignee").value;
+        if (!assigneeId)
+          return showToast("Responsável é obrigatório", "warning");
+        await postWorkflow(`/requests/${selectedRequest.id}/assign`, {
+          assigneeId,
+        });
+      }
+
+      async function postWorkflow(path, body) {
+        try {
+          const res = await fetch(`${API_URL}${path}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || "Erro");
+          showToast("Ação realizada", "success");
+          if (selectedRequest) await refreshSelected();
+          loadEventsFromSelection();
+        } catch (e) {
+          showToast(e.message, "danger");
+        }
+      }
+
+      async function refreshSelected() {
+        if (!selectedRequest) return;
+        try {
+          const res = await fetch(`${API_URL}/requests/${selectedRequest.id}`);
+          const data = await res.json();
+          if (res.ok) selectRequest(data);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      async function loadEventsFromSelection() {
+        if (!selectedRequest) {
+          document.getElementById("eventsList").innerHTML =
+            '<div class="alert alert-warning">Selecione uma requisição</div>';
+          return;
+        }
+        document.getElementById("eventsList").innerHTML =
+          '<div class="skeleton rounded" style="height:80px;"></div>';
+        try {
+          const res = await fetch(
+            `${API_URL}/requests/${selectedRequest.id}/events`
+          );
+          const data = await res.json();
+          renderEvents(data, "eventsList");
+        } catch (e) {
+          document.getElementById(
+            "eventsList"
+          ).innerHTML = `<div class="alert alert-danger">${e.message}</div>`;
+        }
+      }
+
+      function renderEvents(events, containerId) {
+        const container = document.getElementById(containerId);
+        if (!events || events.length === 0) {
+          container.innerHTML =
+            '<div class="alert alert-secondary">Nenhum evento</div>';
+          return;
+        }
+        container.innerHTML = events
+          .map((evt) => {
+            const created = new Date(evt.createdAt).toLocaleString("pt-BR");
+            return `<div class="border rounded p-2 mb-2">
+          <div class="d-flex justify-content-between align-items-center"><strong>${
+            evt.eventType
+          }</strong><small class="text-muted">${created}</small></div>
+          <div class="text-muted small">${
+            evt.fromStatus ? `De ${evt.fromStatus}` : ""
+          } ${evt.toStatus ? ` ${evt.toStatus}` : ""}</div>
+          ${
+            evt.revisionNumber !== null && evt.revisionNumber !== undefined
+              ? `<div class="small">Revisao #${evt.revisionNumber}</div>`
+              : ""
+          }
+          ${evt.actorId ? `<div class="small">Ator: ${evt.actorId}</div>` : ""}
+          ${evt.message ? `<div class="mt-1">${evt.message}</div>` : ""}
+        </div>`;
+          })
+          .join("");
+      }
+
+      function getWorkflowContext() {
+        const requestId = document.getElementById("workflowRequestId").value;
+        const actorId = document.getElementById("workflowActorId").value;
+        if (!requestId) {
+          showToast("ID da requisicao e obrigatorio", "warning");
+          return null;
+        }
+        return { requestId, actorId };
+      }
+
+      function toggleWorkflowLoading(show) {
+        setLoading("workflowLoading", show);
+      }
+      function clearWorkflowResponse() {
+        document.getElementById("workflowResponse").style.display = "none";
+        document.getElementById("workflowEvents").style.display = "none";
+      }
+
+      async function changeStatusWorkflow() {
+        const ctx = getWorkflowContext();
+        if (!ctx) return;
+        const toStatus = document.getElementById("workflowNewStatus").value;
+        const message = document.getElementById("workflowStatusMessage").value;
+        if (!toStatus) return showToast("Selecione o status", "warning");
+        toggleWorkflowLoading(true);
+        clearWorkflowResponse();
+        try {
+          const res = await fetch(
+            `${API_URL}/requests/${ctx.requestId}/status`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                toStatus,
+                message,
+                actorId: ctx.actorId || undefined,
+              }),
+            }
+          );
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || "Erro");
+          showToast("Status alterado", "success");
+        } catch (e) {
+          showToast(e.message, "danger");
+        } finally {
+          toggleWorkflowLoading(false);
+        }
+      }
+
+      async function addCommentWorkflow() {
+        const ctx = getWorkflowContext();
+        if (!ctx) return;
+        const message = document.getElementById("workflowComment").value;
+        if (!message) return showToast("Mensagem e obrigatoria", "warning");
+        toggleWorkflowLoading(true);
+        clearWorkflowResponse();
+        try {
+          const res = await fetch(
+            `${API_URL}/requests/${ctx.requestId}/comments`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                message,
+                actorId: ctx.actorId || undefined,
+              }),
+            }
+          );
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || "Erro");
+          showToast("Comentario adicionado", "success");
+        } catch (e) {
+          showToast(e.message, "danger");
+        } finally {
+          toggleWorkflowLoading(false);
+        }
+      }
+
+      async function addRevisionWorkflow() {
+        const ctx = getWorkflowContext();
+        if (!ctx) return;
+        const message = document.getElementById(
+          "workflowRevisionMessage"
+        ).value;
+        toggleWorkflowLoading(true);
+        clearWorkflowResponse();
+        try {
+          const res = await fetch(
+            `${API_URL}/requests/${ctx.requestId}/revisions`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                message: message || undefined,
+                actorId: ctx.actorId || undefined,
+              }),
+            }
+          );
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || "Erro");
+          showToast("Revisao registrada", "success");
+        } catch (e) {
+          showToast(e.message, "danger");
+        } finally {
+          toggleWorkflowLoading(false);
+        }
+      }
+
+      async function assignWorkflow() {
+        const ctx = getWorkflowContext();
+        if (!ctx) return;
+        const assigneeId = document.getElementById("workflowAssigneeId").value;
+        if (!assigneeId)
+          return showToast("Responsavel e obrigatorio", "warning");
+        toggleWorkflowLoading(true);
+        clearWorkflowResponse();
+        try {
+          const res = await fetch(
+            `${API_URL}/requests/${ctx.requestId}/assign`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                assigneeId,
+                actorId: ctx.actorId || undefined,
+              }),
+            }
+          );
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || "Erro");
+          showToast("Atribuicao feita", "success");
+        } catch (e) {
+          showToast(e.message, "danger");
+        } finally {
+          toggleWorkflowLoading(false);
+        }
+      }
+
+      async function listEvents() {
+        const ctx = getWorkflowContext();
+        if (!ctx) return;
+        toggleWorkflowLoading(true);
+        document.getElementById("workflowEvents").style.display = "none";
+        try {
+          const res = await fetch(
+            `${API_URL}/requests/${ctx.requestId}/events`
+          );
+          const data = await res.json();
+          if (res.ok) {
+            renderEvents(data, "workflowEvents");
+            document.getElementById("workflowEvents").style.display = "block";
+          } else {
+            showToast(data.message || "Erro", "danger");
+          }
+        } catch (e) {
+          showToast(e.message, "danger");
+        } finally {
+          toggleWorkflowLoading(false);
+        }
+      }
+
+      function init() {
+        listClients();
+        clearFilters();
+        advancedSearch();
+      }
+
+      document.addEventListener("DOMContentLoaded", init);
     </script>
   </body>
 </html>
