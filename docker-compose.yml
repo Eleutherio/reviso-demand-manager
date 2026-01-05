@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: reviso-postgres
+    environment:
+      POSTGRES_DB: reviso
+      POSTGRES_USER: reviso
+      POSTGRES_PASSWORD: reviso
+    ports:
+      - "5432:5432"
+    volumes:
+      - reviso_pgdata:/var/lib/postgresql/data
+
+volumes:
+  reviso_pgdata:

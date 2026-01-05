@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reviso Demand Manager</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: #f5f5f5;
+        color: #333;
+      }
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      header {
+        background: #2c3e50;
+        color: white;
+        padding: 20px 0;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+      h1 {
+        font-size: 28px;
+        margin-bottom: 5px;
+      }
+      .subtitle {
+        font-size: 14px;
+        opacity: 0.9;
+      }
+
+      .section {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+      .section h2 {
+        margin-bottom: 15px;
+        font-size: 20px;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 10px;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+      }
+      input,
+      textarea,
+      select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      textarea {
+        resize: vertical;
+        min-height: 100px;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+      }
+      @media (max-width: 600px) {
+        .form-row {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      button {
+        background: #3498db;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 14px;
+      }
+      button:hover {
+        background: #2980b9;
+      }
+      button.success {
+        background: #27ae60;
+      }
+      button.success:hover {
+        background: #229954;
+      }
+      button.danger {
+        background: #e74c3c;
+      }
+      button.danger:hover {
+        background: #c0392b;
+      }
+
+      .response {
+        background: #f8f9fa;
+        border-left: 4px solid #3498db;
+        padding: 15px;
+        border-radius: 4px;
+        font-family: "Monaco", monospace;
+        font-size: 13px;
+        overflow-x: auto;
+      }
+      .response.success {
+        border-left-color: #27ae60;
+        background: #f0fdf4;
+      }
+      .response.error {
+        border-left-color: #e74c3c;
+        background: #fef2f2;
+      }
+
+      .list {
+        margin-top: 15px;
+      }
+      .item {
+        background: #f8f9fa;
+        padding: 12px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+        border-left: 4px solid #3498db;
+      }
+      .item strong {
+        color: #2c3e50;
+      }
+      .item small {
+        color: #7f8c8d;
+      }
+
+      .status {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .status.active {
+        background: #d4edda;
+        color: #155724;
+      }
+      .status.inactive {
+        background: #f8d7da;
+        color: #721c24;
+      }
+
+      .loading {
+        display: none;
+        color: #3498db;
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>📋 Reviso Demand Manager</h1>
+      <p class="subtitle">API REST para Gerenciamento de Requisições</p>
+    </header>
+
+    <div class="container">
+      <!-- Seção Clientes -->
+      <div class="section">
+        <h2>👥 Clientes</h2>
+
+        <h3 style="margin-top: 20px; margin-bottom: 10px">
+          Criar Novo Cliente
+        </h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="clientName">Nome *</label>
+            <input
+              type="text"
+              id="clientName"
+              placeholder="Ex: Agência Orion"
+            />
+          </div>
+          <div class="form-group">
+            <label for="clientSegment">Segmento</label>
+            <input
+              type="text"
+              id="clientSegment"
+              placeholder="Ex: Publicidade"
+            />
+          </div>
+        </div>
+        <button class="success" onclick="createClient()">Criar Cliente</button>
+        <div class="loading" id="clientLoading">Processando...</div>
+
+        <div
+          class="response"
+          id="clientResponse"
+          style="display: none; margin-top: 15px"
+        ></div>
+
+        <h3 style="margin-top: 30px; margin-bottom: 10px">Listar Clientes</h3>
+        <button onclick="listClients()">Carregar Clientes</button>
+        <div class="loading" id="listLoading">Carregando...</div>
+        <div class="list" id="clientList"></div>
+      </div>
+
+      <!-- Seção Requisições -->
+      <div class="section">
+        <h2>📝 Requisições</h2>
+
+        <h3 style="margin-top: 20px; margin-bottom: 10px">
+          Criar Nova Requisição
+        </h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="requestClientId">ID do Cliente *</label>
+            <input
+              type="text"
+              id="requestClientId"
+              placeholder="UUID do cliente"
+            />
+          </div>
+          <div class="form-group">
+            <label for="requestTitle">Título *</label>
+            <input
+              type="text"
+              id="requestTitle"
+              placeholder="Ex: Novo Banner"
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="requestDescription">Descrição</label>
+          <textarea
+            id="requestDescription"
+            placeholder="Detalhes da requisição"
+          ></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="requestType">Tipo</label>
+            <select id="requestType">
+              <option value="">Selecione...</option>
+              <option value="POST">POST</option>
+              <option value="STORY">STORY</option>
+              <option value="BANNER">BANNER</option>
+              <option value="LANDING_PAGE">LANDING_PAGE</option>
+              <option value="TRAFFIC">TRAFFIC</option>
+              <option value="EMAIL">EMAIL</option>
+              <option value="VIDEO">VIDEO</option>
+              <option value="OTHER">OTHER</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="requestPriority">Prioridade</label>
+            <select id="requestPriority">
+              <option value="">Selecione...</option>
+              <option value="LOW">LOW</option>
+              <option value="MEDIUM">MEDIUM</option>
+              <option value="HIGH">HIGH</option>
+              <option value="URGENT">URGENT</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="requestDueDate">Data de Vencimento</label>
+          <input type="datetime-local" id="requestDueDate" />
+        </div>
+
+        <button class="success" onclick="createRequest()">
+          Criar Requisição
+        </button>
+        <div class="loading" id="requestLoading">Processando...</div>
+
+        <div
+          class="response"
+          id="requestResponse"
+          style="display: none; margin-top: 15px"
+        ></div>
+
+        <h3 style="margin-top: 30px; margin-bottom: 10px">Buscar Requisição</h3>
+        <div class="form-group">
+          <label for="requestIdSearch">ID da Requisição</label>
+          <input
+            type="text"
+            id="requestIdSearch"
+            placeholder="UUID da requisição"
+          />
+        </div>
+        <button onclick="getRequest()">Buscar</button>
+        <div class="loading" id="searchLoading">Carregando...</div>
+        <div
+          class="response"
+          id="searchResponse"
+          style="display: none; margin-top: 15px"
+        ></div>
+      </div>
+    </div>
+
+    <script>
+      const API_URL = "http://localhost:8080";
+
+      function showResponse(elementId, data, isError = false) {
+        const element = document.getElementById(elementId);
+        element.textContent = JSON.stringify(data, null, 2);
+        element.className = `response ${isError ? "error" : "success"}`;
+        element.style.display = "block";
+      }
+
+      async function createClient() {
+        const name = document.getElementById("clientName").value;
+        const segment = document.getElementById("clientSegment").value;
+
+        if (!name) {
+          alert("Nome é obrigatório!");
+          return;
+        }
+
+        document.getElementById("clientLoading").style.display = "block";
+
+        try {
+          const response = await fetch(`${API_URL}/clients`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, segment }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            showResponse("clientResponse", data, false);
+            document.getElementById("clientName").value = "";
+            document.getElementById("clientSegment").value = "";
+          } else {
+            showResponse("clientResponse", data, true);
+          }
+        } catch (error) {
+          showResponse("clientResponse", { error: error.message }, true);
+        } finally {
+          document.getElementById("clientLoading").style.display = "none";
+        }
+      }
+
+      async function listClients() {
+        document.getElementById("listLoading").style.display = "block";
+
+        try {
+          const response = await fetch(`${API_URL}/clients`);
+          const clients = await response.json();
+
+          const list = document.getElementById("clientList");
+          list.innerHTML = "";
+
+          if (clients.length === 0) {
+            list.innerHTML = "<p>Nenhum cliente encontrado</p>";
+            return;
+          }
+
+          clients.forEach((client) => {
+            const item = document.createElement("div");
+            item.className = "item";
+            item.innerHTML = `
+                        <strong>${client.name}</strong>
+                        <span class="status ${
+                          client.active ? "active" : "inactive"
+                        }">${client.active ? "Ativo" : "Inativo"}</span>
+                        <br><small>ID: ${client.id}</small>
+                        <br><small>Segmento: ${client.segment || "N/A"}</small>
+                        <br><small>Criado em: ${new Date(
+                          client.createdAt
+                        ).toLocaleString("pt-BR")}</small>
+                    `;
+            list.appendChild(item);
+          });
+        } catch (error) {
+          alert("Erro ao carregar clientes: " + error.message);
+        } finally {
+          document.getElementById("listLoading").style.display = "none";
+        }
+      }
+
+      async function createRequest() {
+        const clientId = document.getElementById("requestClientId").value;
+        const title = document.getElementById("requestTitle").value;
+        const description = document.getElementById("requestDescription").value;
+        const type = document.getElementById("requestType").value || null;
+        const priority =
+          document.getElementById("requestPriority").value || null;
+        const dueDate = document.getElementById("requestDueDate").value;
+
+        if (!clientId || !title) {
+          alert("ID do Cliente e Título são obrigatórios!");
+          return;
+        }
+
+        document.getElementById("requestLoading").style.display = "block";
+
+        try {
+          const body = {
+            clientId,
+            title,
+            description: description || undefined,
+            type: type || undefined,
+            priority: priority || undefined,
+            dueDate: dueDate ? dueDate : undefined,
+          };
+
+          // Remove undefined values
+          Object.keys(body).forEach(
+            (key) => body[key] === undefined && delete body[key]
+          );
+
+          const response = await fetch(`${API_URL}/requests`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            showResponse("requestResponse", data, false);
+            document.getElementById("requestClientId").value = "";
+            document.getElementById("requestTitle").value = "";
+            document.getElementById("requestDescription").value = "";
+            document.getElementById("requestType").value = "";
+            document.getElementById("requestPriority").value = "";
+            document.getElementById("requestDueDate").value = "";
+          } else {
+            showResponse("requestResponse", data, true);
+          }
+        } catch (error) {
+          showResponse("requestResponse", { error: error.message }, true);
+        } finally {
+          document.getElementById("requestLoading").style.display = "none";
+        }
+      }
+
+      async function getRequest() {
+        const id = document.getElementById("requestIdSearch").value;
+
+        if (!id) {
+          alert("ID é obrigatório!");
+          return;
+        }
+
+        document.getElementById("searchLoading").style.display = "block";
+
+        try {
+          const response = await fetch(`${API_URL}/requests/${id}`);
+          const data = await response.json();
+
+          if (response.ok) {
+            showResponse("searchResponse", data, false);
+          } else {
+            showResponse("searchResponse", data, true);
+          }
+        } catch (error) {
+          showResponse("searchResponse", { error: error.message }, true);
+        } finally {
+          document.getElementById("searchLoading").style.display = "none";
+        }
+      }
+
+      // Carregar clientes ao iniciar
+      listClients();
+    </script>
+  </body>
+</html>
