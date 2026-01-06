@@ -1,11 +1,13 @@
 package com.guilherme.reviso_demand_manager.web;
 
+import com.guilherme.reviso_demand_manager.application.BriefingService;
 import com.guilherme.reviso_demand_manager.application.RequestService;
 import com.guilherme.reviso_demand_manager.application.RequestWorkflowService;
 import com.guilherme.reviso_demand_manager.domain.RequestEvent;
 import com.guilherme.reviso_demand_manager.domain.RequestPriority;
 import com.guilherme.reviso_demand_manager.domain.RequestStatus;
 import com.guilherme.reviso_demand_manager.domain.RequestType;
+import com.guilherme.reviso_demand_manager.infra.JwtAuthFilter;
 import com.guilherme.reviso_demand_manager.web.AssignRequestDTO;
 import com.guilherme.reviso_demand_manager.web.ChangeStatusDTO;
 import com.guilherme.reviso_demand_manager.web.CommentDTO;
@@ -15,6 +17,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
@@ -28,10 +31,14 @@ public class RequestController {
 
     private final RequestService requestService;
     private final RequestWorkflowService requestWorkflowService;
+    private final BriefingService briefingService;
 
-    public RequestController(RequestService requestService, RequestWorkflowService requestWorkflowService) {
+    public RequestController(RequestService requestService, 
+                             RequestWorkflowService requestWorkflowService,
+                             BriefingService briefingService) {
         this.requestService = requestService;
         this.requestWorkflowService = requestWorkflowService;
+        this.briefingService = briefingService;
     }
 
     @PostMapping
@@ -100,6 +107,18 @@ public class RequestController {
                 .map(this::toEventDTO)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(events);
+    }
+
+    // CLIENT_USER endpoints with tenant isolation
+    @GetMapping("/mine")
+    public ResponseEntity<List<RequestDTO>> getMyRequests(Authentication authentication) {
+        JwtAuthFilter.AuthenticatedUser user = (JwtAuthFilter.AuthenticatedUser) authentication.getPrincipal();
+        
+        if (user.companyId() == null) {
+            throw new IllegalArgumentException("CLIENT_USER deve ter companyId");
+        }
+
+        return ResponseEntity.ok(briefingService.listMyRequests(user.companyId()));
     }
 
     private RequestEventDTO toEventDTO(RequestEvent event) {
