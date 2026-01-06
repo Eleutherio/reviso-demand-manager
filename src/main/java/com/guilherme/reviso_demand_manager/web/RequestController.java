@@ -48,7 +48,19 @@ public class RequestController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<RequestDTO> getRequestById(@PathVariable UUID id) {
+    public ResponseEntity<RequestDTO> getRequestById(
+            @PathVariable UUID id,
+            Authentication authentication) {
+        
+        // Se for CLIENT_USER, valida tenant isolation
+        if (authentication != null && authentication.getPrincipal() instanceof JwtAuthFilter.AuthenticatedUser user) {
+            if (user.companyId() != null) {
+                // Usa método com tenant check
+                return ResponseEntity.ok(briefingService.getRequestById(id, user.companyId()));
+            }
+        }
+        
+        // Para AGENCY_ADMIN/AGENCY_USER, retorna sem filtro
         RequestDTO request = requestService.getRequestById(id);
         return ResponseEntity.ok(request);
     }
@@ -101,8 +113,21 @@ public class RequestController {
     }
 
     @GetMapping("/{id}/events")
-    public ResponseEntity<List<RequestEventDTO>> listEvents(@PathVariable UUID id,
-                                                           @RequestParam(defaultValue = "false") boolean onlyVisibleToClient) {
+    public ResponseEntity<List<RequestEventDTO>> listEvents(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "false") boolean onlyVisibleToClient,
+            Authentication authentication) {
+        
+        // Se for CLIENT_USER, aplica tenant isolation e força visible_to_client=true
+        if (authentication != null && authentication.getPrincipal() instanceof JwtAuthFilter.AuthenticatedUser user) {
+            if (user.companyId() != null) {
+                // Valida tenant antes de listar eventos
+                briefingService.getRequestById(id, user.companyId());
+                // Força visible_to_client=true para clientes
+                onlyVisibleToClient = true;
+            }
+        }
+        
         List<RequestEventDTO> events = requestWorkflowService.listEvents(id, onlyVisibleToClient).stream()
                 .map(this::toEventDTO)
                 .collect(Collectors.toList());
