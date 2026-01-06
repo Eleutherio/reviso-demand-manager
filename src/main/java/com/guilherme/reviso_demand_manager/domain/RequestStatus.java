@@ -7,5 +7,7 @@ public enum RequestStatus {
     CHANGES_REQUESTED,
     APPROVED,
     DELIVERED,
+    DONE,
+    CANCELED,
     CLOSED
 }

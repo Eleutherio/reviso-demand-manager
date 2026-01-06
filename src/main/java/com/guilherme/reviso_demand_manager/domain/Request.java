@@ -12,14 +12,14 @@ import java.util.UUID;
 @Table(name = "requests")
 public class Request {
 
-    private static final Map<RequestStatus, Set<RequestStatus>> ALLOWED_TRANSITIONS = Map.of(
-            RequestStatus.NEW, Set.of(RequestStatus.IN_PROGRESS),
-            RequestStatus.IN_PROGRESS, Set.of(RequestStatus.IN_REVIEW),
-            RequestStatus.IN_REVIEW, Set.of(RequestStatus.APPROVED, RequestStatus.CHANGES_REQUESTED),
-            RequestStatus.CHANGES_REQUESTED, Set.of(RequestStatus.IN_PROGRESS),
-            RequestStatus.APPROVED, Set.of(RequestStatus.DELIVERED),
-            RequestStatus.DELIVERED, Set.of(RequestStatus.CLOSED)
-    );
+        private static final Map<RequestStatus, Set<RequestStatus>> ALLOWED_TRANSITIONS = Map.of(
+            RequestStatus.NEW, Set.of(RequestStatus.IN_PROGRESS, RequestStatus.CANCELED),
+            RequestStatus.IN_PROGRESS, Set.of(RequestStatus.IN_REVIEW, RequestStatus.CANCELED),
+            RequestStatus.IN_REVIEW, Set.of(RequestStatus.APPROVED, RequestStatus.CHANGES_REQUESTED, RequestStatus.CANCELED),
+            RequestStatus.CHANGES_REQUESTED, Set.of(RequestStatus.IN_PROGRESS, RequestStatus.CANCELED),
+            RequestStatus.APPROVED, Set.of(RequestStatus.DELIVERED, RequestStatus.CANCELED),
+            RequestStatus.DELIVERED, Set.of(RequestStatus.DONE, RequestStatus.CLOSED)
+        );
 
     @Id
     @Column(columnDefinition = "UUID")
