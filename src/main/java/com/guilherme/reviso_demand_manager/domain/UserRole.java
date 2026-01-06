@@ -1,6 +1,7 @@
 package com.guilherme.reviso_demand_manager.domain;
 
 public enum UserRole {
-    AGENCY,
-    CLIENT
+    AGENCY_ADMIN,
+    AGENCY_USER,
+    CLIENT_USER
 }
