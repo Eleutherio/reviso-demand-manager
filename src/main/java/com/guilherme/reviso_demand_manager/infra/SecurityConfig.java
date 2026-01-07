@@ -49,8 +49,6 @@ public class SecurityConfig {
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/", "/index.html").permitAll()
-                // Public static HTML pages (portais)
-                .requestMatchers(HttpMethod.GET, "/**/*.html").permitAll()
                 
                 // Admin endpoints - only AGENCY_ADMIN
                 .requestMatchers("/admin/**").hasRole("AGENCY_ADMIN")

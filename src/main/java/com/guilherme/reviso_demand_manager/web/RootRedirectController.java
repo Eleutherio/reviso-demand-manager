@@ -16,7 +16,7 @@ public class RootRedirectController {
         this.frontendBaseUrl = frontendBaseUrl;
     }
 
-    @GetMapping("/")
+    @GetMapping({"/", "/index.html"})
     public ResponseEntity<Void> root() {
         return ResponseEntity.status(HttpStatus.FOUND)
                 .header(HttpHeaders.LOCATION, frontendBaseUrl)

@@ -1,0 +1,21 @@
+{
+  "properties": [
+    {
+      "name": "frontend.base-url",
+      "type": "java.lang.String",
+      "description": "Base URL do frontend (Angular) para redirect do backend em / e /index.html.",
+      "defaultValue": "http://localhost:4200"
+    },
+    {
+      "name": "jwt.secret",
+      "type": "java.lang.String",
+      "description": "Segredo usado para assinar/validar JWT. Deve ser sobrescrito em produção."
+    },
+    {
+      "name": "jwt.expiration-hours",
+      "type": "java.lang.Integer",
+      "description": "Tempo de expiração do JWT (em horas).",
+      "defaultValue": 24
+    }
+  ]
+}

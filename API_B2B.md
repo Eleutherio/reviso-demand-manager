@@ -276,7 +276,7 @@ Authorization: Bearer {jwt-token}
 ### Endpoints Públicos
 
 - `POST /auth/login`
-- `GET /` e `/index.html`
+- `GET /` e `/index.html` (redirect para o frontend)
 - `GET /actuator/**`
 
 ### Endpoints Protegidos por Role

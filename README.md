@@ -16,7 +16,6 @@ Centraliza pedidos (peças, campanhas, landing pages etc.), controla status, pra
 - PostgreSQL 16 + Flyway para migrations
 - Maven para build
 - Angular em `frontend/` (frontend oficial)
-- UI legado (HTML/JS) preservado em `src/main/resources/legacy-static` (não é servido pela API)
 
 ## Requisitos
 
@@ -65,7 +64,7 @@ Subir tudo (Postgres + API + Angular via Nginx):
 docker compose up --build
 ```
 
-- Backend (API + UI legado): `http://localhost:8080`
+- Backend (API): `http://localhost:8080`
 - Frontend Angular (Nginx): `http://localhost:4200`
 
 Para ajustar o redirect do backend `/`, defina `FRONTEND_BASE_URL` no compose/env (padrão: `http://localhost:4200`).
