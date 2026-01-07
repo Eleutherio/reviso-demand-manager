@@ -155,10 +155,13 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
 yarn.lock
 .npm
 .eslintcache
+
+### Angular (se houver) ###
+frontend/dist/
+frontend/.angular/cache/
 
 ### Outros ###
 *.class
