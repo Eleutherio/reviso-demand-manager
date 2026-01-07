@@ -15,7 +15,8 @@ Centraliza pedidos (peças, campanhas, landing pages etc.), controla status, pra
 - Java 21, Spring Boot 4.0.1 (Web MVC, Data JPA, Validation, Actuator)
 - PostgreSQL 16 + Flyway para migrations
 - Maven para build
-- HTML/CSS/JS estático em `src/main/resources/static`
+- HTML/CSS/JS estático em `src/main/resources/static` (legado)
+- Angular (core inicial) em `frontend/` (em migração)
 
 ## Requisitos
 
@@ -56,6 +57,25 @@ As páginas estáticas ficam em [src/main/resources/static](src/main/resources/s
 
 - Agência/admin: `http://localhost:8080/` (aponta para `index.html`)
 - Portal do Cliente (CLIENT_USER): `http://localhost:8080/client-portal.html`
+
+## Frontend Angular (Core)
+
+O projeto Angular fica em [frontend](frontend). Nesta etapa ele contém apenas o App Shell + Auth + rotas (telas placeholder), consumindo o backend via proxy.
+
+Rodar no dev:
+
+- Backend (Spring) no ar em `http://localhost:8080`
+- Frontend (Angular):
+  - `cd frontend`
+  - `npm install`
+  - `npm start`
+
+O `npm start` usa `frontend/proxy.conf.json` para:
+
+- Chamar o backend como `/api/*` no Angular
+- Proxy para `http://localhost:8080` com rewrite removendo o prefixo `/api`
+
+Exemplo: `POST /api/auth/login` (Angular) → `POST /auth/login` (backend)
 
 Observação: no Portal do Cliente, os campos extras (Tipo, Prioridade e Vencimento) são anexados ao texto da descrição do briefing para manter compatibilidade com a API atual do backend.
 
