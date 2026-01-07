@@ -1,0 +1,95 @@
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.shell__header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.shell__brand {
+  font-weight: 700;
+}
+
+.shell__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.shell__meta-line {
+  line-height: 1.2;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+}
+
+.shell__logout {
+  margin-left: auto;
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  background: transparent;
+  border-radius: 6px;
+}
+
+.shell__body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 0;
+}
+
+.shell__sidebar {
+  border-right: 1px solid #e5e7eb;
+  padding: 12px;
+  overflow: auto;
+}
+
+.shell__content {
+  padding: 16px;
+  overflow: auto;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nav__link {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.nav__link.active {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .shell__body {
+    grid-template-columns: 1fr;
+  }
+
+  .shell__sidebar {
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}

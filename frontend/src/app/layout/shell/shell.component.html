@@ -1,0 +1,36 @@
+<div class="shell">
+  <header class="shell__header">
+    <div class="shell__brand">Reviso</div>
+
+    <div class="shell__meta" *ngIf="role as r">
+      <div class="shell__meta-line">
+        Role: <strong>{{ r }}</strong>
+      </div>
+      <div class="shell__meta-line" *ngIf="companyId">
+        CID: <span class="mono">{{ companyId }}</span>
+      </div>
+    </div>
+
+    <button class="shell__logout" type="button" (click)="logout()">Logout</button>
+  </header>
+
+  <div class="shell__body">
+    <aside class="shell__sidebar">
+      <nav class="nav">
+        <a
+          *ngFor="let item of navItems"
+          class="nav__link"
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+        >
+          {{ item.label }}
+        </a>
+      </nav>
+    </aside>
+
+    <main class="shell__content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>
