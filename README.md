@@ -17,11 +17,16 @@ Centraliza pedidos (peças, campanhas, landing pages etc.), controla status, pra
 - Maven para build
 - Angular em `frontend/` (frontend oficial)
 
+## Estrutura do repositório
+
+- Backend (Spring Boot): `backend/`
+- Frontend (Angular): `frontend/`
+
 ## Requisitos
 
 - JDK 21+
 - Maven Wrapper (`./mvnw`) incluído
-- PostgreSQL rodando em `localhost:5432` com database `reviso` e usuário/senha `reviso` (ajuste em `src/main/resources/application.properties` se necessário)
+- PostgreSQL rodando em `localhost:5432` com database `reviso` e usuário/senha `reviso` (ajuste em `backend/src/main/resources/application.properties` se necessário)
 
 ## Endpoints principais
 

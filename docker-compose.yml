@@ -18,11 +18,11 @@ services:
     networks:
       - reviso-network
 
-  api:
+  backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
-    container_name: reviso-api
+    container_name: reviso-backend
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-reviso}
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-reviso}
@@ -45,7 +45,7 @@ services:
       dockerfile: Dockerfile
     container_name: reviso-frontend
     depends_on:
-      - api
+      - backend
     ports:
       - "${FRONTEND_PORT:-4200}:80"
     networks:
