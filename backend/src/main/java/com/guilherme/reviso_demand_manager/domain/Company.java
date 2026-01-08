@@ -15,6 +15,9 @@ public class Company {
     @Column(columnDefinition = "UUID")
     private UUID id;
 
+    @Column(name = "company_code", nullable = false, length = 32, updatable = false)
+    private String companyCode;
+
     @Column(nullable = false, length = 160)
     private String name;
 
@@ -48,6 +51,14 @@ public class Company {
 
     public void setId(UUID id) {
         this.id = id;
+    }
+
+    public String getCompanyCode() {
+        return companyCode;
+    }
+
+    public void setCompanyCode(String companyCode) {
+        this.companyCode = companyCode;
     }
 
     public String getName() {

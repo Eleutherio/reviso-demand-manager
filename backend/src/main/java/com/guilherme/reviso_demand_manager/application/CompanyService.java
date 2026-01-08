@@ -10,8 +10,10 @@ import com.guilherme.reviso_demand_manager.web.UpdateCompanyDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.Normalizer;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -27,6 +29,7 @@ public class CompanyService {
     public CompanyDTO createCompany(CreateCompanyDTO dto) {
         Company company = new Company();
         company.setId(UUID.randomUUID());
+        company.setCompanyCode(generateCompanyCode(dto.name(), dto.type(), dto.segment()));
         company.setName(dto.name());
         company.setType(dto.type());
         company.setActive(true);
@@ -96,6 +99,7 @@ public class CompanyService {
     private CompanyDTO toDTO(Company company) {
         return new CompanyDTO(
                 company.getId(),
+                company.getCompanyCode(),
                 company.getName(),
                 company.getType(),
                 company.getActive(),
@@ -105,5 +109,48 @@ public class CompanyService {
                 company.getUsefulLinks(),
                 company.getCreatedAt()
         );
+    }
+
+    private String generateCompanyCode(String name, CompanyType type, String segment) {
+        String base = buildBaseCode(name, type, segment);
+        String candidate = base;
+        int suffix = 1;
+
+        while (companyRepository.existsByCompanyCode(candidate)) {
+            candidate = base + "-" + String.format("%02d", suffix);
+            suffix++;
+        }
+
+        return candidate;
+    }
+
+    private String buildBaseCode(String name, CompanyType type, String segment) {
+        String namePart = normalizePart(name, 4);
+        String typePart = type == CompanyType.CLIENT ? "CL" : "AG";
+        String segmentPart = normalizePart(segment, 3);
+        return namePart + "-" + typePart + "-" + segmentPart;
+    }
+
+    private String normalizePart(String value, int length) {
+        String normalized = normalize(value);
+        if (normalized.length() >= length) {
+            return normalized.substring(0, length);
+        }
+
+        StringBuilder padded = new StringBuilder(normalized);
+        while (padded.length() < length) {
+            padded.append('X');
+        }
+        return padded.toString();
+    }
+
+    private String normalize(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        String decomposed = Normalizer.normalize(value, Normalizer.Form.NFD);
+        String withoutMarks = decomposed.replaceAll("\\p{M}", "");
+        return withoutMarks.toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "");
     }
 }
