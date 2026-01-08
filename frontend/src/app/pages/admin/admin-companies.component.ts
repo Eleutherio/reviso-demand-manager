@@ -122,7 +122,9 @@ import { CompanyDto, CompanyType } from '../../api/company';
             <th style="text-align: left; padding: 8px;">Ativa</th>
             <th style="text-align: left; padding: 8px;">Segmento</th>
             <th style="text-align: left; padding: 8px;">Email</th>
+            <th style="text-align: left; padding: 8px;">Codigo</th>
             <th style="text-align: left; padding: 8px;">Criada em</th>
+            <th style="text-align: left; padding: 8px;">ID Empresa</th>
             <th style="text-align: left; padding: 8px;"></th>
           </tr>
         </thead>
@@ -134,7 +136,9 @@ import { CompanyDto, CompanyType } from '../../api/company';
             <td style="padding: 8px;">{{ c.active ? 'Sim' : 'Não' }}</td>
             <td style="padding: 8px;">{{ c.segment ?? '-' }}</td>
             <td style="padding: 8px;">{{ c.contactEmail ?? '-' }}</td>
+            <td style="padding: 8px;">{{ c.companyCode ?? '-' }}</td>
             <td style="padding: 8px;">{{ c.createdAt | date : 'dd/MM/yyyy HH:mm' }}</td>
+            <td style="padding: 8px;">{{ c.id }}</td>
             <td style="padding: 8px;">
               <button type="button" (click)="startEdit(c)">Editar</button>
             </td>
