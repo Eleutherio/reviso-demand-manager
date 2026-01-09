@@ -18,13 +18,11 @@
         />
       </label>
 
-      <div class="error" *ngIf="error">{{ error }}</div>
-
       <button class="btn" type="submit" [disabled]="loading">
         {{ loading ? 'Entrando...' : 'Entrar' }}
       </button>
     </form>
 
-    <div class="login__hint">Backend: <span class="mono">/api/auth/login</span></div>
+    <div class="error login__hint" *ngIf="error">{{ error }}</div>
   </div>
 </div>

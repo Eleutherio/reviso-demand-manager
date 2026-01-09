@@ -20,8 +20,12 @@ import { UserDto, UserRole } from '../../api/user';
             name="fullName"
             required
             [value]="form.fullName"
-            (input)="form.fullName = getValue($event)"
+            [style.borderColor]="fieldErrors.fullName ? '#c00' : ''"
+            (input)="onTextInput('fullName', $event)"
           />
+          @if (fieldErrors.fullName) {
+          <small style="color: #c00;">{{ fieldErrors.fullName }}</small>
+          }
         </label>
 
         <label style="display: grid; gap: 4px;">
@@ -31,8 +35,12 @@ import { UserDto, UserRole } from '../../api/user';
             type="email"
             required
             [value]="form.email"
-            (input)="form.email = getValue($event)"
+            [style.borderColor]="fieldErrors.email ? '#c00' : ''"
+            (input)="onTextInput('email', $event)"
           />
+          @if (fieldErrors.email) {
+          <small style="color: #c00;">{{ fieldErrors.email }}</small>
+          }
         </label>
 
         @if (!editingId) {
@@ -43,8 +51,12 @@ import { UserDto, UserRole } from '../../api/user';
             type="password"
             required
             [value]="form.password"
-            (input)="form.password = getValue($event)"
+            [style.borderColor]="fieldErrors.password ? '#c00' : ''"
+            (input)="onTextInput('password', $event)"
           />
+          @if (fieldErrors.password) {
+          <small style="color: #c00;">{{ fieldErrors.password }}</small>
+          }
         </label>
         }
 
@@ -54,7 +66,7 @@ import { UserDto, UserRole } from '../../api/user';
             name="role"
             required
             [value]="form.role"
-            (change)="form.role = getUserRole($event)"
+            (change)="onRoleChange($event)"
           >
             <option value="AGENCY_ADMIN">{{ roleLabels.AGENCY_ADMIN }}</option>
             <option value="AGENCY_USER">{{ roleLabels.AGENCY_USER }}</option>
@@ -76,15 +88,21 @@ import { UserDto, UserRole } from '../../api/user';
         </label>
         }
 
+        @if (form.role === 'CLIENT_USER') {
         <label style="display: grid; gap: 4px;">
           ID da empresa (obrigatório para referenciar Cliente)
           <input
             name="companyId"
             placeholder="UUID da empresa"
             [value]="form.companyIdText"
-            (input)="form.companyIdText = getValue($event)"
+            [style.borderColor]="fieldErrors.companyId ? '#c00' : ''"
+            (input)="onTextInput('companyId', $event)"
           />
+          @if (fieldErrors.companyId) {
+          <small style="color: #c00;">{{ fieldErrors.companyId }}</small>
+          }
         </label>
+        }
 
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
           <button type="submit">{{ editingId ? 'Salvar' : 'Criar' }}</button>
@@ -179,6 +197,7 @@ export class AdminUsersComponent {
   };
 
   formError: string | null = null;
+  fieldErrors: Partial<Record<'fullName' | 'email' | 'password' | 'companyId', string>> = {};
   searchTerm = '';
 
   private readonly refresh$ = new Subject<void>();
@@ -251,6 +270,7 @@ export class AdminUsersComponent {
 
   startEdit(u: UserDto): void {
     this.formError = null;
+    this.fieldErrors = {};
     this.editingId = u.id;
     this.form.fullName = u.fullName;
     this.form.email = u.email;
@@ -262,6 +282,7 @@ export class AdminUsersComponent {
 
   cancelEdit(): void {
     this.formError = null;
+    this.fieldErrors = {};
     this.editingId = null;
     this.resetForm();
   }
@@ -275,17 +296,67 @@ export class AdminUsersComponent {
       companyIdText: '',
       activeStr: 'true',
     };
+    this.fieldErrors = {};
+  }
+
+  onTextInput(field: 'fullName' | 'email' | 'password' | 'companyId', ev: Event): void {
+    const value = this.getValue(ev);
+    if (field === 'fullName') {
+      this.form.fullName = value;
+    } else if (field === 'email') {
+      this.form.email = value;
+    } else if (field === 'password') {
+      this.form.password = value;
+    } else {
+      this.form.companyIdText = value;
+    }
+
+    if (this.fieldErrors[field] && value.trim()) {
+      delete this.fieldErrors[field];
+    }
+  }
+
+  onRoleChange(ev: Event): void {
+    this.form.role = this.getUserRole(ev);
+    if (this.form.role !== 'CLIENT_USER') {
+      this.form.companyIdText = '';
+      delete this.fieldErrors.companyId;
+    }
+  }
+
+  private validateForm(): boolean {
+    const errors: typeof this.fieldErrors = {};
+
+    if (!this.form.fullName.trim()) {
+      errors.fullName = 'Informe o nome completo.';
+    }
+
+    if (!this.form.email.trim()) {
+      errors.email = 'Informe o email.';
+    }
+
+    if (!this.editingId && !this.form.password.trim()) {
+      errors.password = 'Informe a senha.';
+    }
+
+    if (this.form.role === 'CLIENT_USER' && !this.form.companyIdText.trim()) {
+      errors.companyId = 'Informe o ID da empresa.';
+    }
+
+    this.fieldErrors = errors;
+    return Object.keys(errors).length === 0;
   }
 
   async onSubmit(ev: Event): Promise<void> {
     ev.preventDefault();
     this.formError = null;
+    this.fieldErrors = {};
 
-    const companyId = this.form.companyIdText.trim() || null;
-    if (this.form.role === 'CLIENT_USER' && !companyId) {
-      this.formError = 'Para CLIENT_USER, informe o companyId.';
+    if (!this.validateForm()) {
       return;
     }
+
+    const companyId = this.form.companyIdText.trim() || null;
 
     const base = {
       fullName: this.form.fullName.trim(),
