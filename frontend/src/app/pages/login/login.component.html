@@ -2,10 +2,34 @@
   <div class="login__card">
     <h1 class="login__title">Entrar</h1>
 
-    <form [formGroup]="form" (ngSubmit)="submit()" class="login__form">
+    <div class="login__portal">
+      <button
+        class="portal__btn"
+        type="button"
+        [class.portal__btn--active]="portal === 'agency'"
+        (click)="setPortal('agency')"
+      >
+        Sou Agencia
+      </button>
+      <button
+        class="portal__btn"
+        type="button"
+        [class.portal__btn--active]="portal === 'client'"
+        (click)="setPortal('client')"
+      >
+        Sou Cliente
+      </button>
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="submit()" class="login__form">
       <label class="field">
         <span class="field__label">Email</span>
         <input class="field__input" type="email" formControlName="email" autocomplete="username" />
+      </label>
+
+      <label class="field" *ngIf="portal === 'client'">
+        <span class="field__label">Codigo da empresa</span>
+        <input class="field__input" type="text" formControlName="companyCode" autocomplete="off" />
       </label>
 
       <label class="field">
@@ -22,6 +46,28 @@
         {{ loading ? 'Entrando...' : 'Entrar' }}
       </button>
     </form>
+
+    <div class="login__recover" *ngIf="portal === 'client'">
+      <button class="link" type="button" (click)="toggleRecover()">
+        Nao sei meu codigo
+      </button>
+
+      <div class="login__recover-form" *ngIf="recoverVisible">
+        <form [formGroup]="recoverForm" (ngSubmit)="recoverCompanyCode()" class="login__form">
+          <label class="field">
+            <span class="field__label">Email</span>
+            <input class="field__input" type="email" formControlName="email" autocomplete="email" />
+          </label>
+
+          <button class="btn btn--ghost" type="submit" [disabled]="recovering">
+            {{ recovering ? 'Enviando...' : 'Enviar codigo' }}
+          </button>
+        </form>
+      </div>
+
+      <div class="success login__hint" *ngIf="recoverMessage">{{ recoverMessage }}</div>
+      <div class="error login__hint" *ngIf="recoverError">{{ recoverError }}</div>
+    </div>
 
     <div class="error login__hint" *ngIf="error">{{ error }}</div>
   </div>
