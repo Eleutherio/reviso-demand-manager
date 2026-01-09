@@ -114,6 +114,7 @@ Temporary Items
 !.env.example
 *.env
 
+
 # Credenciais e certificados
 *.key
 *.pem
