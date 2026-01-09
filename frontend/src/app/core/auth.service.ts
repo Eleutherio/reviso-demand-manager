@@ -28,6 +28,23 @@ export class AuthService {
     );
   }
 
+  loginClient(companyCode: string, email: string, password: string): Observable<void> {
+    return this.http
+      .post<LoginResponse>('/api/auth/login-client', { companyCode, email, password })
+      .pipe(
+        map((res) => res?.token),
+        tap((token) => {
+          if (!token) throw new Error('Token ausente no login');
+          localStorage.setItem(this.tokenKey, token);
+        }),
+        map(() => void 0)
+      );
+  }
+
+  recoverCompanyCode(email: string): Observable<{ message?: string }> {
+    return this.http.post<{ message?: string }>('/api/auth/recover-company-code', { email });
+  }
+
   logout(): void {
     localStorage.removeItem(this.tokenKey);
   }
