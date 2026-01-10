@@ -1,5 +1,6 @@
 ﻿package com.guilherme.reviso_demand_manager.web;
 
+import com.guilherme.reviso_demand_manager.application.AgencyPasswordRecoveryService;
 import com.guilherme.reviso_demand_manager.application.CompanyCodeRecoveryService;
 import com.guilherme.reviso_demand_manager.domain.Company;
 import com.guilherme.reviso_demand_manager.domain.CompanyType;
@@ -31,19 +32,22 @@ public class AuthController {
     private final JwtService jwtService;
     private final RateLimitService rateLimitService;
     private final CompanyCodeRecoveryService companyCodeRecoveryService;
+    private final AgencyPasswordRecoveryService agencyPasswordRecoveryService;
 
     public AuthController(UserRepository userRepository, 
                           CompanyRepository companyRepository,
                           PasswordEncoder passwordEncoder,
                           JwtService jwtService,
                           RateLimitService rateLimitService,
-                          CompanyCodeRecoveryService companyCodeRecoveryService) {
+                          CompanyCodeRecoveryService companyCodeRecoveryService,
+                          AgencyPasswordRecoveryService agencyPasswordRecoveryService) {
         this.userRepository = userRepository;
         this.companyRepository = companyRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.rateLimitService = rateLimitService;
         this.companyCodeRecoveryService = companyCodeRecoveryService;
+        this.agencyPasswordRecoveryService = agencyPasswordRecoveryService;
     }
 
     @PostMapping("/login")
@@ -175,6 +179,74 @@ public class AuthController {
 
         response.put("status", HttpStatus.OK.value());
         response.put("message", "Se o email estiver ativo, enviaremos os codigos.");
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/recover-agency-password")
+    public ResponseEntity<Map<String, Object>> recoverAgencyPassword(
+        @Valid @RequestBody RecoverAgencyPasswordRequestDTO dto,
+        HttpServletRequest request
+    ) {
+        String clientIp = getClientIp(request);
+        String normalizedEmail = normalizeEmail(dto.email());
+        if (!rateLimitService.isAllowed("recover-agency-password:ip:" + clientIp)
+            || !rateLimitService.isAllowed("recover-agency-password:email:" + normalizedEmail)) {
+            throw new TooManyRequestsException("Muitas tentativas. Aguarde 1 minuto.");
+        }
+
+        EmailSendStatus status = agencyPasswordRecoveryService.requestToken(dto.email());
+
+        Map<String, Object> response = new HashMap<>();
+        if (status == EmailSendStatus.QUOTA) {
+            response.put("status", HttpStatus.ACCEPTED.value());
+            response.put("message", "Limite de envio atingido. Seu pedido foi registrado e sera enviado em breve.");
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+        }
+        if (status == EmailSendStatus.RETRY) {
+            response.put("status", HttpStatus.ACCEPTED.value());
+            response.put("message", "Estamos com instabilidade no envio. Seu pedido foi registrado.");
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+        }
+        if (status == EmailSendStatus.FAILED) {
+            response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.put("error", "Falha ao enviar email");
+            response.put("message", "Nao foi possivel enviar o token de recuperacao.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+
+        response.put("status", HttpStatus.OK.value());
+        response.put("message", "Se o email estiver ativo, enviaremos um token.");
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/recover-agency-password/confirm")
+    public ResponseEntity<Map<String, Object>> confirmRecoverAgencyPassword(
+        @Valid @RequestBody RecoverAgencyPasswordConfirmRequestDTO dto,
+        HttpServletRequest request
+    ) {
+        String clientIp = getClientIp(request);
+        String normalizedEmail = normalizeEmail(dto.email());
+        if (!rateLimitService.isAllowed("recover-agency-password-confirm:ip:" + clientIp)
+            || !rateLimitService.isAllowed("recover-agency-password-confirm:email:" + normalizedEmail)) {
+            throw new TooManyRequestsException("Muitas tentativas. Aguarde 1 minuto.");
+        }
+
+        boolean success = agencyPasswordRecoveryService.resetPassword(
+            dto.email(),
+            dto.token(),
+            dto.newPassword()
+        );
+
+        Map<String, Object> response = new HashMap<>();
+        if (!success) {
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            response.put("error", "Token invalido ou expirado");
+            response.put("message", "Token invalido ou expirado.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+
+        response.put("status", HttpStatus.OK.value());
+        response.put("message", "Senha atualizada com sucesso.");
         return ResponseEntity.ok(response);
     }
     
