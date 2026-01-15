@@ -21,6 +21,7 @@ public record CreateUserDTO(
     @NotNull(message = "Role é obrigatória")
     UserRole role,
     
-    UUID companyId
+    UUID companyId,
+    String companyCode
 ) {
 }

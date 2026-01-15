@@ -10,6 +10,7 @@ public record UserDTO(
     String email,
     UserRole role,
     UUID companyId,
+    String companyCode,
     Boolean active,
     OffsetDateTime createdAt
 ) {

@@ -10,6 +10,7 @@ import java.util.UUID;
 
 public interface CompanyRepository extends JpaRepository<Company, UUID> {
 	List<Company> findByTypeOrderByNameAsc(CompanyType type);
+    Optional<Company> findByCompanyCodeIgnoreCase(String companyCode);
     Optional<Company> findByCompanyCodeIgnoreCaseAndActiveTrue(String companyCode);
     boolean existsByCompanyCode(String companyCode);
 }

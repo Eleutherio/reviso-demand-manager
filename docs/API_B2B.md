@@ -118,14 +118,34 @@ Criar usuário (agency ou client):
   "email": "joao@empresa.com",
   "password": "senha123",
   "role": "CLIENT_USER",
-  "companyId": "uuid-da-empresa"
+  "companyCode": "CABC-CL-XXX"
 }
 ```
 
 **Validações:**
 
-- `CLIENT_USER` **deve** ter `companyId`
-- `AGENCY_ADMIN` e `AGENCY_USER` podem ter `companyId` null
+- `CLIENT_USER` **deve** ter `companyId` **ou** `companyCode`
+- `AGENCY_ADMIN` e `AGENCY_USER` podem ter `companyId`/`companyCode` null
+- Se enviar ambos, eles devem apontar para a mesma empresa
+
+#### PATCH /admin/users/{id}
+
+Atualizar usuario:
+
+```json
+{
+  "fullName": "Joao Silva",
+  "email": "joao@empresa.com",
+  "role": "CLIENT_USER",
+  "companyCode": "CABC-CL-XXX",
+  "active": true
+}
+```
+
+Observacoes:
+
+- Para `CLIENT_USER`, informe `companyId` ou `companyCode`
+- Se enviar ambos, eles devem apontar para a mesma empresa
 
 #### GET /admin/users
 
@@ -262,7 +282,7 @@ Authorization: Bearer {token-admin}
   "email": "maria@clienteabc.com",
   "password": "senha123",
   "role": "CLIENT_USER",
-  "companyId": "company-uuid"
+  "companyCode": "CABC-CL-XXX"
 }
 ```
 
