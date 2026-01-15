@@ -4,7 +4,6 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { catchError, map, of, startWith, switchMap, Subject } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 
-import { AuthService } from '../../core/auth.service';
 import { ClientApi } from '../../api/client.api';
 import type { BriefingDto } from '../../api/briefing';
 
@@ -14,10 +13,6 @@ import type { BriefingDto } from '../../api/briefing';
   imports: [CommonModule, ReactiveFormsModule, DatePipe],
   template: `
     <h2>Meus Briefings</h2>
-    <p>
-      Role atual: <strong>{{ role }}</strong>
-    </p>
-
     <form
       (ngSubmit)="submit()"
       [formGroup]="form"
@@ -77,8 +72,6 @@ import type { BriefingDto } from '../../api/briefing';
   `,
 })
 export class ClientBriefingsComponent {
-  readonly role;
-
   loading = false;
   error: string | null = null;
 
@@ -117,13 +110,7 @@ export class ClientBriefingsComponent {
     )
   );
 
-  constructor(
-    private readonly auth: AuthService,
-    private readonly api: ClientApi,
-    fb: FormBuilder
-  ) {
-    this.role = this.auth.getRole();
-
+  constructor(private readonly api: ClientApi, fb: FormBuilder) {
     this.form = fb.group({
       title: ['', [Validators.required]],
       description: [''],

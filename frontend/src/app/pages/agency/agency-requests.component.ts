@@ -1,10 +1,9 @@
-import { Component } from '@angular/core';
+﻿import { Component } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { catchError, map, of, startWith, switchMap, Subject } from 'rxjs';
 
-import { AuthService } from '../../core/auth.service';
 import { RequestsApi } from '../../api/requests.api';
 import type { RequestStatus, SortDirection } from '../../api/requests.api';
 import type { Page, RequestDto } from '../../api/request';
@@ -15,9 +14,6 @@ import type { Page, RequestDto } from '../../api/request';
   imports: [CommonModule, DatePipe, RouterLink],
   template: `
     <h2>Requisições</h2>
-    <p>
-      Role atual: <strong>{{ role }}</strong>
-    </p>
 
     <div style="border: 1px solid #ddd; padding: 12px; border-radius: 6px; margin: 12px 0;">
       <h3 style="margin: 0 0 8px;">Filtros</h3>
@@ -206,8 +202,6 @@ import type { Page, RequestDto } from '../../api/request';
   `,
 })
 export class AgencyRequestsComponent {
-  readonly role;
-
   filters: {
     companyId: string;
     status: '' | RequestStatus;
@@ -282,9 +276,7 @@ export class AgencyRequestsComponent {
     )
   );
 
-  constructor(private readonly auth: AuthService, private readonly api: RequestsApi) {
-    this.role = this.auth.getRole();
-  }
+  constructor(private readonly api: RequestsApi) {}
 
   getValue(ev: Event): string {
     const target = ev.target as HTMLInputElement;
@@ -370,3 +362,5 @@ export class AgencyRequestsComponent {
     this.reload();
   }
 }
+
+

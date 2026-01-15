@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { catchError, map, of, startWith, switchMap, Subject } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 
-import { AuthService } from '../../core/auth.service';
 import { AgencyBriefingsApi } from '../../api/agency-briefings.api';
 import type { BriefingDto } from '../../api/briefing';
 import type { AgencyDepartment } from '../../api/request';
@@ -15,10 +14,6 @@ import type { AgencyDepartment } from '../../api/request';
   imports: [CommonModule, FormsModule, DatePipe],
   template: `
     <h2>Inbox Briefings</h2>
-    <p>
-      Role atual: <strong>{{ role }}</strong>
-    </p>
-
     <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin: 12px 0;">
       <label style="display: inline-flex; gap: 8px; align-items: center;">
         Status
@@ -79,8 +74,6 @@ import type { AgencyDepartment } from '../../api/request';
   `,
 })
 export class AgencyInboxComponent {
-  readonly role;
-
   readonly statuses = ['PENDING', 'CONVERTED', 'REJECTED'];
   status: string = 'PENDING';
 
@@ -128,9 +121,7 @@ export class AgencyInboxComponent {
     )
   );
 
-  constructor(private readonly auth: AuthService, private readonly api: AgencyBriefingsApi) {
-    this.role = this.auth.getRole();
-  }
+  constructor(private readonly api: AgencyBriefingsApi) {}
 
   reload(): void {
     this.reload$.next();

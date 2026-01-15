@@ -1,10 +1,9 @@
-import { Component } from '@angular/core';
+﻿import { Component } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { catchError, map, of, startWith } from 'rxjs';
 
-import { AuthService } from '../../core/auth.service';
 import { ClientApi } from '../../api/client.api';
 import type { RequestDto } from '../../api/request';
 
@@ -14,9 +13,6 @@ import type { RequestDto } from '../../api/request';
   imports: [CommonModule, DatePipe, RouterLink],
   template: `
     <h2>Minhas Requisições</h2>
-    <p>
-      Role atual: <strong>{{ role }}</strong>
-    </p>
 
     @if (vm$ | async; as vm) { @if (vm.status === 'loading') {
     <p>Carregando...</p>
@@ -61,13 +57,9 @@ import type { RequestDto } from '../../api/request';
   `,
 })
 export class ClientRequestsComponent {
-  readonly role;
-
   readonly vm$;
 
-  constructor(private readonly auth: AuthService, private readonly api: ClientApi) {
-    this.role = this.auth.getRole();
-
+  constructor(private readonly api: ClientApi) {
     this.vm$ = this.api.listMyRequests().pipe(
       map((requests: RequestDto[]) => ({ status: 'ready' as const, requests })),
       startWith({ status: 'loading' as const }),
@@ -97,3 +89,5 @@ export class ClientRequestsComponent {
     );
   }
 }
+
+
