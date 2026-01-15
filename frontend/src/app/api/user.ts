@@ -6,6 +6,7 @@ export interface UserDto {
   email: string;
   role: UserRole;
   companyId: string | null;
+  companyCode: string | null;
   active: boolean;
   createdAt: string;
 }
