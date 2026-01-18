@@ -80,7 +80,8 @@ public class AuthController {
                 user.getId(),
                 user.getEmail(),
                 user.getRole(),
-                user.getCompanyId()
+                user.getCompanyId(),
+                user.getAgencyId()
         );
 
         LoginResponseDTO response = new LoginResponseDTO(
@@ -89,7 +90,8 @@ public class AuthController {
                 user.getFullName(),
                 user.getEmail(),
                 user.getRole(),
-                user.getCompanyId()
+                user.getCompanyId(),
+                user.getAgencyId()
         );
 
         return ResponseEntity.ok(response);
@@ -120,6 +122,11 @@ public class AuthController {
         if (user.getCompanyId() == null || !user.getCompanyId().equals(company.getId())) {
             throw new UnauthorizedException("Credenciais invalidas");
         }
+        if (user.getAgencyId() == null
+            || company.getAgencyId() == null
+            || !user.getAgencyId().equals(company.getAgencyId())) {
+            throw new UnauthorizedException("Credenciais invalidas");
+        }
 
         if (!passwordEncoder.matches(dto.password(), user.getPasswordHash())) {
             throw new UnauthorizedException("Credenciais invalidas");
@@ -131,7 +138,8 @@ public class AuthController {
             user.getId(),
             user.getEmail(),
             user.getRole(),
-            user.getCompanyId()
+            user.getCompanyId(),
+            user.getAgencyId()
         );
 
         LoginResponseDTO response = new LoginResponseDTO(
@@ -140,7 +148,8 @@ public class AuthController {
             user.getFullName(),
             user.getEmail(),
             user.getRole(),
-            user.getCompanyId()
+            user.getCompanyId(),
+            user.getAgencyId()
         );
 
         return ResponseEntity.ok(response);

@@ -31,7 +31,12 @@ public class BriefingController {
             throw new IllegalArgumentException("CLIENT_USER deve ter companyId");
         }
 
-        BriefingDTO created = briefingService.createBriefing(dto, user.companyId(), user.userId());
+        BriefingDTO created = briefingService.createBriefing(
+            dto,
+            user.companyId(),
+            user.userId(),
+            user.agencyId()
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
@@ -43,6 +48,6 @@ public class BriefingController {
             throw new IllegalArgumentException("CLIENT_USER deve ter companyId");
         }
 
-        return ResponseEntity.ok(briefingService.listMyBriefings(user.companyId()));
+        return ResponseEntity.ok(briefingService.listMyBriefings(user.companyId(), user.agencyId()));
     }
 }

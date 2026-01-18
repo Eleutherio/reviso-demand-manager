@@ -37,8 +37,14 @@ public class RequestController {
     }
 
     @PostMapping
-    public ResponseEntity<RequestDTO> createRequest(@Valid @RequestBody CreateRequestDTO dto) {
-        RequestDTO created = requestService.createRequest(dto);
+    public ResponseEntity<RequestDTO> createRequest(
+            @Valid @RequestBody CreateRequestDTO dto,
+            Authentication authentication) {
+        JwtAuthFilter.AuthenticatedUser user = (JwtAuthFilter.AuthenticatedUser) authentication.getPrincipal();
+        if (user.companyId() != null && !user.companyId().equals(dto.companyId())) {
+            throw new IllegalArgumentException("companyId invalido");
+        }
+        RequestDTO created = requestService.createRequest(dto, user.agencyId());
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
@@ -51,12 +57,12 @@ public class RequestController {
         if (authentication != null && authentication.getPrincipal() instanceof JwtAuthFilter.AuthenticatedUser user) {
             if (user.companyId() != null) {
                 // Usa método com tenant check
-                return ResponseEntity.ok(briefingService.getRequestById(id, user.companyId()));
+                return ResponseEntity.ok(briefingService.getRequestById(id, user.companyId(), user.agencyId()));
             }
         }
         
         // Para AGENCY_ADMIN/AGENCY_USER, retorna sem filtro
-        RequestDTO request = requestService.getRequestById(id);
+        RequestDTO request = requestService.getRequestById(id, userAgencyId(authentication));
         return ResponseEntity.ok(request);
     }
 
@@ -72,10 +78,18 @@ public class RequestController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String direction) {
+            @RequestParam(defaultValue = "desc") String direction,
+            Authentication authentication) {
+
+        UUID agencyId = userAgencyId(authentication);
+        if (authentication != null && authentication.getPrincipal() instanceof JwtAuthFilter.AuthenticatedUser user) {
+            if (user.companyId() != null) {
+                companyId = user.companyId();
+            }
+        }
 
         Page<RequestDTO> requests = requestService.getAllRequests(
-            status, priority, type, companyId,
+            status, priority, type, agencyId, companyId,
                 dueBefore, createdFrom, createdTo,
                 page, size, sortBy, direction
         );
@@ -83,26 +97,60 @@ public class RequestController {
     }
 
     @PostMapping("/{id}/status")
-    public ResponseEntity<RequestEventDTO> changeStatus(@PathVariable UUID id, @Valid @RequestBody ChangeStatusDTO dto) {
-        RequestEvent event = requestWorkflowService.changeStatus(id, dto.toStatus(), dto.message(), dto.actorId());
+    public ResponseEntity<RequestEventDTO> changeStatus(
+            @PathVariable UUID id,
+            @Valid @RequestBody ChangeStatusDTO dto,
+            Authentication authentication) {
+        RequestEvent event = requestWorkflowService.changeStatus(
+            id,
+            dto.toStatus(),
+            dto.message(),
+            dto.actorId(),
+            userAgencyId(authentication)
+        );
         return ResponseEntity.ok(toEventDTO(event));
     }
 
     @PostMapping("/{id}/comments")
-    public ResponseEntity<RequestEventDTO> addComment(@PathVariable UUID id, @Valid @RequestBody CommentDTO dto) {
-        RequestEvent event = requestWorkflowService.addComment(id, dto.message(), dto.actorId(), dto.visibleToClient());
+    public ResponseEntity<RequestEventDTO> addComment(
+            @PathVariable UUID id,
+            @Valid @RequestBody CommentDTO dto,
+            Authentication authentication) {
+        RequestEvent event = requestWorkflowService.addComment(
+            id,
+            dto.message(),
+            dto.actorId(),
+            dto.visibleToClient(),
+            userAgencyId(authentication)
+        );
         return ResponseEntity.ok(toEventDTO(event));
     }
 
     @PostMapping("/{id}/revisions")
-    public ResponseEntity<RequestEventDTO> addRevision(@PathVariable UUID id, @RequestBody RevisionDTO dto) {
-        RequestEvent event = requestWorkflowService.addRevision(id, dto.message(), dto.actorId());
+    public ResponseEntity<RequestEventDTO> addRevision(
+            @PathVariable UUID id,
+            @RequestBody RevisionDTO dto,
+            Authentication authentication) {
+        RequestEvent event = requestWorkflowService.addRevision(
+            id,
+            dto.message(),
+            dto.actorId(),
+            userAgencyId(authentication)
+        );
         return ResponseEntity.ok(toEventDTO(event));
     }
 
     @PostMapping("/{id}/assign")
-    public ResponseEntity<RequestEventDTO> assign(@PathVariable UUID id, @Valid @RequestBody AssignRequestDTO dto) {
-        RequestEvent event = requestWorkflowService.assign(id, dto.assigneeId(), dto.actorId());
+    public ResponseEntity<RequestEventDTO> assign(
+            @PathVariable UUID id,
+            @Valid @RequestBody AssignRequestDTO dto,
+            Authentication authentication) {
+        RequestEvent event = requestWorkflowService.assign(
+            id,
+            dto.assigneeId(),
+            dto.actorId(),
+            userAgencyId(authentication)
+        );
         return ResponseEntity.ok(toEventDTO(event));
     }
 
@@ -116,13 +164,13 @@ public class RequestController {
         if (authentication != null && authentication.getPrincipal() instanceof JwtAuthFilter.AuthenticatedUser user) {
             if (user.companyId() != null) {
                 // Valida tenant antes de listar eventos
-                briefingService.getRequestById(id, user.companyId());
+                briefingService.getRequestById(id, user.companyId(), user.agencyId());
                 // Força visible_to_client=true para clientes
                 onlyVisibleToClient = true;
             }
         }
         
-        List<RequestEventDTO> events = requestWorkflowService.listEvents(id, onlyVisibleToClient).stream()
+        List<RequestEventDTO> events = requestWorkflowService.listEvents(id, onlyVisibleToClient, userAgencyId(authentication)).stream()
                 .map(this::toEventDTO)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(events);
@@ -137,7 +185,15 @@ public class RequestController {
             throw new IllegalArgumentException("CLIENT_USER deve ter companyId");
         }
 
-        return ResponseEntity.ok(briefingService.listMyRequests(user.companyId()));
+        return ResponseEntity.ok(briefingService.listMyRequests(user.companyId(), user.agencyId()));
+    }
+
+    private UUID userAgencyId(Authentication authentication) {
+        JwtAuthFilter.AuthenticatedUser user = (JwtAuthFilter.AuthenticatedUser) authentication.getPrincipal();
+        if (user == null || user.agencyId() == null) {
+            throw new IllegalArgumentException("agencyId is required");
+        }
+        return user.agencyId();
     }
 
     private RequestEventDTO toEventDTO(RequestEvent event) {
@@ -155,3 +211,6 @@ public class RequestController {
         );
     }
 }
+
+
+
