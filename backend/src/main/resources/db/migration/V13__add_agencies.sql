@@ -1,0 +1,7 @@
+-- V13 - Add agencies table
+CREATE TABLE IF NOT EXISTS agencies (
+  id UUID PRIMARY KEY,
+  name VARCHAR(160) NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
