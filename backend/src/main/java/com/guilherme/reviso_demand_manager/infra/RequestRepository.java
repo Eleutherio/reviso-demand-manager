@@ -6,9 +6,12 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface RequestRepository extends JpaRepository<Request, UUID>, JpaSpecificationExecutor<Request> {
     List<Request> findByCompanyIdOrderByCreatedAtDesc(UUID companyId);
+    List<Request> findByCompanyIdAndAgencyIdOrderByCreatedAtDesc(UUID companyId, UUID agencyId);
+    Optional<Request> findByIdAndAgencyId(UUID id, UUID agencyId);
 }
