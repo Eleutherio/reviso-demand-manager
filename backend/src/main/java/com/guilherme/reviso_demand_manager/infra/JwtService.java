@@ -27,7 +27,7 @@ public class JwtService {
         this.expirationHours = expirationHours;
     }
 
-    public String generateToken(UUID userId, String email, UserRole role, UUID companyId) {
+    public String generateToken(UUID userId, String email, UserRole role, UUID companyId, UUID agencyId) {
         Instant now = Instant.now();
         Instant expiration = now.plus(expirationHours, ChronoUnit.HOURS);
 
@@ -41,6 +41,9 @@ public class JwtService {
 
         if (companyId != null) {
             builder.claim("companyId", companyId.toString());
+        }
+        if (agencyId != null) {
+            builder.claim("agencyId", agencyId.toString());
         }
 
         return builder.compact();
@@ -70,5 +73,10 @@ public class JwtService {
     public UUID extractCompanyId(Claims claims) {
         String companyIdStr = claims.get("companyId", String.class);
         return companyIdStr != null ? UUID.fromString(companyIdStr) : null;
+    }
+
+    public UUID extractAgencyId(Claims claims) {
+        String agencyIdStr = claims.get("agencyId", String.class);
+        return agencyIdStr != null ? UUID.fromString(agencyIdStr) : null;
     }
 }

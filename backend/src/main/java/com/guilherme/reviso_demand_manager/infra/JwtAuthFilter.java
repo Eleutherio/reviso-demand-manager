@@ -45,11 +45,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String email = jwtService.extractEmail(claims);
             UserRole role = jwtService.extractRole(claims);
             UUID companyId = jwtService.extractCompanyId(claims);
+            UUID agencyId = jwtService.extractAgencyId(claims);
             
             // Create authentication token with role as authority
             var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
             var authToken = new UsernamePasswordAuthenticationToken(
-                new AuthenticatedUser(userId, email, role, companyId),
+                new AuthenticatedUser(userId, email, role, companyId, agencyId),
                 null,
                 authorities
             );
@@ -65,5 +66,5 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
     
-    public record AuthenticatedUser(UUID userId, String email, UserRole role, UUID companyId) {}
+    public record AuthenticatedUser(UUID userId, String email, UserRole role, UUID companyId, UUID agencyId) {}
 }
