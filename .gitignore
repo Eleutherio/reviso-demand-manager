@@ -146,6 +146,8 @@ dump.sql
 database.sql
 db-backup/
 *.dump
+db/seed_data.sql
+db/reset_data.sql
 
 ### Docker ###
 docker-compose.override.yml
