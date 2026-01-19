@@ -1,4 +1,4 @@
-﻿package com.guilherme.reviso_demand_manager.web;
+package com.guilherme.reviso_demand_manager.web;
 
 import com.guilherme.reviso_demand_manager.application.AgencyPasswordRecoveryService;
 import com.guilherme.reviso_demand_manager.application.CompanyCodeRecoveryService;
@@ -279,4 +279,3 @@ public class AuthController {
         return rawEmail.trim().toLowerCase(Locale.ROOT);
     }
 }
-
