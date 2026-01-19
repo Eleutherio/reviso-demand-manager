@@ -1,0 +1,141 @@
+package com.guilherme.reviso_demand_manager.application;
+
+import com.guilherme.reviso_demand_manager.domain.*;
+import com.guilherme.reviso_demand_manager.infra.*;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Teste de integração para o fluxo de onboarding SaaS
+ * 
+ * NOTA: Este é um exemplo de teste. Para rodar, você precisa:
+ * 1. Configurar banco de dados de teste
+ * 2. Mockar StripeClient (ou usar Stripe test mode)
+ * 3. Mockar EmailOutboxService
+ */
+@SpringBootTest
+@Transactional
+class OnboardingServiceIntegrationTest {
+
+    @Autowired
+    private OnboardingService onboardingService;
+
+    @Autowired
+    private AgencyRepository agencyRepository;
+
+    @Autowired
+    private CompanyRepository companyRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private SubscriptionRepository subscriptionRepository;
+
+    @Autowired
+    private SubscriptionPlanRepository planRepository;
+
+    @Test
+    void shouldProvisionAgencySuccessfully() {
+        // Arrange: criar plano de teste
+        var plan = new SubscriptionPlan();
+        plan.setId(UUID.randomUUID());
+        plan.setName("Test Plan");
+        plan.setPrice(new BigDecimal("99.00"));
+        plan.setBillingPeriod("MONTHLY");
+        plan.setMaxUsers(5);
+        plan.setMaxRequestsPerMonth(50);
+        plan.setActive(true);
+        plan.setCreatedAt(OffsetDateTime.now());
+        planRepository.save(plan);
+
+        // Act: provisionar agência
+        var agencyId = onboardingService.provisionAgency(
+                plan.getId(),
+                "Test Agency",
+                "admin@test.com",
+                "password123",
+                "sub_test123",
+                "cus_test123"
+        );
+
+        // Assert: verificar que tudo foi criado
+        assertNotNull(agencyId);
+
+        var agency = agencyRepository.findById(agencyId).orElseThrow();
+        assertEquals("Test Agency", agency.getName());
+        assertTrue(agency.getActive());
+
+        var companies = companyRepository.findAll();
+        var company = companies.stream()
+                .filter(c -> c.getAgencyId().equals(agencyId))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(CompanyType.AGENCY, company.getType());
+        assertEquals("ADMIN", company.getSegment());
+
+        var users = userRepository.findAll();
+        var admin = users.stream()
+                .filter(u -> u.getEmail().equals("admin@test.com"))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(UserRole.AGENCY_ADMIN, admin.getRole());
+        assertEquals(agencyId, admin.getAgencyId());
+        assertNotNull(admin.getPasswordHash());
+
+        var subscription = subscriptionRepository.findByAgencyId(agencyId).orElseThrow();
+        assertEquals("sub_test123", subscription.getStripeSubscriptionId());
+        assertEquals("cus_test123", subscription.getStripeCustomerId());
+        assertEquals("active", subscription.getStatus());
+    }
+
+    @Test
+    void shouldUpdateSubscriptionStatus() {
+        // Arrange: criar agência e subscription
+        var plan = createTestPlan();
+        var agencyId = onboardingService.provisionAgency(
+                plan.getId(),
+                "Test Agency 2",
+                "admin2@test.com",
+                "password123",
+                "sub_test456",
+                "cus_test456"
+        );
+
+        // Act: atualizar status para canceled
+        onboardingService.handleSubscriptionUpdate(
+                "sub_test456",
+                "canceled",
+                OffsetDateTime.now(),
+                OffsetDateTime.now().plusMonths(1)
+        );
+
+        // Assert: verificar que agência foi desativada
+        var agency = agencyRepository.findById(agencyId).orElseThrow();
+        assertFalse(agency.getActive());
+
+        var subscription = subscriptionRepository.findByStripeSubscriptionId("sub_test456").orElseThrow();
+        assertEquals("canceled", subscription.getStatus());
+    }
+
+    private SubscriptionPlan createTestPlan() {
+        var plan = new SubscriptionPlan();
+        plan.setId(UUID.randomUUID());
+        plan.setName("Test Plan");
+        plan.setPrice(new BigDecimal("99.00"));
+        plan.setBillingPeriod("MONTHLY");
+        plan.setMaxUsers(5);
+        plan.setMaxRequestsPerMonth(50);
+        plan.setActive(true);
+        plan.setCreatedAt(OffsetDateTime.now());
+        return planRepository.save(plan);
+    }
+}
