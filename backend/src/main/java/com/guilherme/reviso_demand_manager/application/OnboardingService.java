@@ -25,6 +25,7 @@ public class OnboardingService {
     private final PasswordEncoder passwordEncoder;
     private final EmailOutboxService emailService;
     private final StripeClient stripeClient;
+    private final BillingConfig billingConfig;
 
     public OnboardingService(
             AgencyRepository agencyRepository,
@@ -35,7 +36,8 @@ public class OnboardingService {
             PendingSignupRepository pendingSignupRepository,
             PasswordEncoder passwordEncoder,
             EmailOutboxService emailService,
-            StripeClient stripeClient
+            StripeClient stripeClient,
+            BillingConfig billingConfig
     ) {
         this.agencyRepository = agencyRepository;
         this.companyRepository = companyRepository;
@@ -46,6 +48,7 @@ public class OnboardingService {
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.stripeClient = stripeClient;
+        this.billingConfig = billingConfig;
     }
 
     public String createCheckoutSession(UUID planId, String agencyName, String adminEmail, String adminPassword, String successUrl, String cancelUrl) throws Exception {
@@ -56,12 +59,18 @@ public class OnboardingService {
             throw new IllegalArgumentException("Plan is not active");
         }
 
-        if (plan.getStripePriceId() == null || plan.getStripePriceId().equals("CONFIGURE_IN_STRIPE")) {
-            throw new IllegalArgumentException("Plan is not properly configured");
-        }
-
         if (userRepository.findByEmail(adminEmail).isPresent()) {
             throw new IllegalArgumentException("Email already registered");
+        }
+
+        // Mock: provisiona direto sem Stripe
+        if (billingConfig.isMock()) {
+            return provisionAgencyMock(planId, agencyName, adminEmail, adminPassword);
+        }
+
+        // Stripe: checkout real
+        if (plan.getStripePriceId() == null || plan.getStripePriceId().equals("CONFIGURE_IN_STRIPE")) {
+            throw new IllegalArgumentException("Plan is not properly configured");
         }
 
         // Hash password IMMEDIATELY (never send to Stripe)
@@ -93,6 +102,65 @@ public class OnboardingService {
                 maskSensitive(checkoutSessionId), maskEmail(adminEmail));
 
         return sessionJson;
+    }
+
+    @Transactional
+    private String provisionAgencyMock(UUID planId, String agencyName, String adminEmail, String adminPassword) {
+        log.info("Mock provisioning: agency={}, email={}", agencyName, maskEmail(adminEmail));
+
+        var passwordHash = passwordEncoder.encode(adminPassword);
+
+        var agency = new Agency();
+        agency.setId(UUID.randomUUID());
+        agency.setName(agencyName);
+        agency.setActive(true); // Ativo imediatamente (trial)
+        agency.setCreatedAt(OffsetDateTime.now());
+        agencyRepository.save(agency);
+
+        var company = new Company();
+        company.setId(UUID.randomUUID());
+        company.setAgencyId(agency.getId());
+        company.setCompanyCode("AG-" + agency.getId().toString().substring(0, 8).toUpperCase());
+        company.setName(agencyName);
+        company.setType(CompanyType.AGENCY);
+        company.setSegment("ADMIN");
+        company.setContactEmail(adminEmail);
+        company.setActive(true);
+        company.setCreatedAt(OffsetDateTime.now());
+        companyRepository.save(company);
+
+        var admin = new User();
+        admin.setId(UUID.randomUUID());
+        admin.setFullName(adminEmail.split("@")[0]);
+        admin.setEmail(adminEmail);
+        admin.setPasswordHash(passwordHash);
+        admin.setRole(UserRole.AGENCY_ADMIN);
+        admin.setAgencyId(agency.getId());
+        admin.setCompanyId(company.getId());
+        admin.setActive(true);
+        admin.setCreatedAt(OffsetDateTime.now());
+        userRepository.save(admin);
+
+        var subscription = new Subscription();
+        subscription.setId(UUID.randomUUID());
+        subscription.setAgencyId(agency.getId());
+        subscription.setPlanId(planId);
+        subscription.setStatus(SubscriptionStatus.TRIALING); // Trial mock
+        subscription.setCurrentPeriodStart(OffsetDateTime.now());
+        subscription.setCurrentPeriodEnd(OffsetDateTime.now().plusDays(billingConfig.getTrialDays()));
+        subscription.setCreatedAt(OffsetDateTime.now());
+        subscriptionRepository.save(subscription);
+
+        emailService.enqueueAndSend(new EmailMessage(
+                adminEmail,
+                "Bem-vindo ao Reviso!",
+                "Olá! Sua agência " + agencyName + " foi criada com sucesso.\n\nAcesse: http://localhost:4200\nEmail: " + adminEmail
+        ));
+
+        log.info("Mock agency provisioned: agencyId={}", agency.getId());
+
+        // Retorna JSON mock (frontend espera sessionUrl)
+        return "{\"url\":\"http://localhost:4200/login\",\"id\":\"mock_session\"}";
     }
 
     private String extractSessionIdFromJson(String json) {
