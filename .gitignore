@@ -146,8 +146,9 @@ dump.sql
 database.sql
 db-backup/
 *.dump
-db/seed_data.sql
+# db/seed_data.sql  # Comentado: pode ser commitado como exemplo
 db/reset_data.sql
+db/*_local.sql
 
 ### Docker ###
 docker-compose.override.yml
@@ -191,3 +192,4 @@ TODO.md
 NOTES.md
 scratch/
 temp/
+SECURITY_CHECKLIST_PROD.md
