@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ConfigService } from './core/config.service';
 
 interface Plan {
   id: string;
@@ -57,7 +58,7 @@ interface Plan {
             </div>
             <button type="submit" [disabled]="!form.valid || loading"
                     class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50">
-              {{ loading ? 'Processando...' : 'Continuar para pagamento' }}
+              {{ loading ? 'Processando...' : (isMock ? 'Começar trial (' + trialDays + ' dias)' : 'Continuar para pagamento') }}
             </button>
           </form>
         </div>
@@ -72,10 +73,21 @@ export class SignupComponent implements OnInit {
   adminEmail = '';
   adminPassword = '';
   loading = false;
+  isMock = false;
+  trialDays = 14;
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(
+    private http: HttpClient, 
+    private router: Router,
+    private configService: ConfigService
+  ) {}
 
   ngOnInit() {
+    this.configService.getConfig().subscribe(config => {
+      this.isMock = config.isMock;
+      this.trialDays = config.trialDays;
+    });
+
     this.http.get<Plan[]>('/api/onboarding/plans').subscribe(plans => {
       this.plans = plans;
     });
@@ -96,7 +108,14 @@ export class SignupComponent implements OnInit {
       adminPassword: this.adminPassword
     }).subscribe({
       next: (response) => {
-        window.location.href = response.sessionUrl;
+        if (this.isMock) {
+          // Mock: redireciona direto para login
+          alert('Trial ativado! Faça login com suas credenciais.');
+          this.router.navigate(['/login']);
+        } else {
+          // Stripe: redireciona para checkout
+          window.location.href = response.sessionUrl;
+        }
       },
       error: () => {
         this.loading = false;
