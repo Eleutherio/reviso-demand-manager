@@ -2,17 +2,12 @@
 
 ## Autenticação
 
-**JWT** com HS384.
+**JWT** com HS384, 24h validade.
 
-Claims:
-- `sub`: userId
-- `email`, `role`, `companyId`, `agencyId`
-- `exp`: 24h (configurável)
+Claims: `sub` (userId), `email`, `role`, `companyId`, `agencyId`.
 
-Secret: Mínimo 256 bits via `JWT_SECRET`.
-
+Secret mínimo 256 bits:
 ```bash
-# Gerar secret
 openssl rand -base64 64
 ```
 
@@ -20,146 +15,89 @@ openssl rand -base64 64
 
 **BCrypt** strength 10.
 
-Regras:
 - ✅ Hash antes de salvar
 - ❌ Nunca plaintext no banco
-- ❌ Nunca em logs
-- ❌ Nunca em APIs externas (Stripe, Resend)
+- ❌ Nunca em logs ou APIs externas
 
 ## Rate Limiting
 
-| Endpoint | Limite |
-|----------|--------|
-| `/auth/login` | 10/min por IP |
-| `/auth/login-client` | 10/min por IP |
-| `/auth/recover-*` | 5/min por IP + email |
-| `/onboarding/signup` | 3/min por IP |
+**Nginx:**
+- `/auth/*`: 10/min por IP
+- `/recover-*`: 5/min por IP
 
-Webhooks: **SEM rate limit** (usa idempotência).
+**Aplicação:**
+- Login: 10/min por IP + 10/min por email
+- Recovery: 5/min por IP + 5/min por email
+- Signup: 3/min por IP
+
+**Logs:** Failed/successful login attempts com IP e email.
+
+Ver [SECURITY_RATE_LIMITING.md](SECURITY_RATE_LIMITING.md).
 
 ## Webhook Stripe
 
-### Validação
+**Validação:** SDK oficial (`stripe-java`), HMAC SHA256, timestamp 5 min.
 
-Usa SDK oficial (`stripe-java`):
-
-```java
-import com.stripe.net.Webhook;
-
-Webhook.constructEvent(payload, signature, webhookSecret);
-```
-
-Valida:
-- HMAC SHA256
-- Timestamp (tolerância 5 min)
-- Autenticidade do evento
-
-### Idempotência
-
-Constraint único no banco:
-
-```sql
-CREATE UNIQUE INDEX idx_webhook_event_id 
-ON stripe_webhook_events(event_id);
-```
-
-Pattern insert-first:
+**Idempotência:** Constraint único `event_id`.
 
 ```java
 try {
     webhookEventRepository.save(new StripeWebhookEvent(eventId));
 } catch (DataIntegrityViolationException e) {
-    return ResponseEntity.ok().build(); // Já processado
+    return 200; // Já processado
 }
-// Processa evento
 ```
 
-Garante processamento único mesmo com:
-- Retries do Stripe
-- Race conditions
-- Duplicação de eventos
+## Secrets
 
-## CORS
-
-Configurado em `SecurityConfig.java`:
-
-```java
-.allowedOrigins("http://localhost:4200") // Dev
-.allowedOrigins("https://seu-dominio.com") // Prod
-```
-
-## Dados Sensíveis
-
-**Nunca logar ou expor:**
-- Senhas (plaintext ou hash)
-- JWT secrets
-- Stripe API keys
-- Database credentials
-- Resend API keys
-
-**Usar variáveis de ambiente:**
+**Variáveis obrigatórias (demo):**
 ```bash
 JWT_SECRET=...
+DB_PASSWORD=...
 STRIPE_API_KEY=...
 STRIPE_WEBHOOK_SECRET=...
 RESEND_API_KEY=...
-DB_PASSWORD=...
 ```
+
+Aplicação falha se não configurados (`${VAR:?required}`).
+
+## HTTP Security
+
+**Headers:** HSTS preload, CSP, X-Frame-Options, Permissions-Policy, server_tokens off.
+
+Ver [SECURITY_HTTP_HARDENING.md](SECURITY_HTTP_HARDENING.md).
+
+## Container Security
+
+**PostgreSQL:**
+- User: postgres (non-root)
+- SCRAM-SHA-256 auth
+- no-new-privileges
+- Porta não exposta (demo)
+
+**Backend:**
+- User: 1000:1000 (non-root)
+- no-new-privileges
+- Bind 127.0.0.1 (demo)
+
+## SSH & Host
+
+- Key-only auth (password disabled)
+- Root login disabled
+- Fail2ban (SSH + Nginx)
+- Unattended-upgrades
+- Firewall (UFW): 22, 80, 443
+
+Ver [SECURITY_CHECKLIST_DEMO.md](SECURITY_CHECKLIST_DEMO.md).
 
 ## LGPD
 
-### Dados Pessoais Armazenados
+**Armazenado:** Nome, email, hash senha, Stripe IDs.
 
-- Nome completo
-- Email
-- Hash de senha (BCrypt)
-- Stripe customer_id, subscription_id
+**NÃO armazenado:** Senha plaintext, dados pagamento.
 
-### Dados NÃO Armazenados
-
-- Senha plaintext
-- Dados de pagamento (cartão)
-- CPF/CNPJ (não coletado)
-
-### Retenção
-
-- `pending_signups`: 24h (cleanup automático)
-- `agencies`, `users`, `companies`: Indefinido até exclusão manual
-- `stripe_webhook_events`: Indefinido (auditoria)
-
-### Direitos do Titular
-
-Implementar manualmente:
-- Acesso: `GET /admin/users/{id}`
-- Retificação: `PATCH /admin/users/{id}`
-- Exclusão: `DELETE /admin/users/{id}` (soft delete recomendado)
-
-## Auditoria
-
-### Request Events
-
-Tabela `request_events` registra:
-- Mudanças de status
-- Atribuições
-- Comentários
-- Timestamp e userId
-
-### Logs
-
-Configurar em produção:
-- Nível: INFO (não DEBUG)
-- Rotation: Diário
-- Retenção: 30 dias
-- Excluir dados sensíveis
+**Retenção:** pending_signups 24h, demais indefinido.
 
 ## Checklist Produção
 
-- [ ] `JWT_SECRET` forte (64+ chars)
-- [ ] `STRIPE_API_KEY` de produção (sk_live_)
-- [ ] `STRIPE_WEBHOOK_SECRET` configurado
-- [ ] CORS com domínio real
-- [ ] HTTPS habilitado
-- [ ] Rate limiting ativo
-- [ ] Logs sem dados sensíveis
-- [ ] Backup de banco configurado
-- [ ] Monitoramento de erros (Sentry, etc)
+Ver [SECURITY_CHECKLIST_DEMO.md](SECURITY_CHECKLIST_DEMO.md).

@@ -2,22 +2,49 @@
 
 ## Ambientes
 
-### Development
+### Development (localhost)
 ```bash
-docker compose up -d --build
+cd infra/dev
+cp .env.dev.example .env.dev
+# Editar .env.dev
+
+docker compose -f docker-compose.dev.yml up -d --build
+
+# Seed database
+docker compose -f docker-compose.dev.yml exec -T postgres \
+  psql -U reviso -d reviso < ../../db/seed_data.sql
 ```
 
 - Frontend: http://localhost:4200
 - Backend: http://localhost:8080
 - PostgreSQL: localhost:5433
 
-### Production
+### Demo/Production (público)
+```bash
+cd infra/demo
+cp .env.demo.example .env.demo
+# Editar .env.demo com valores reais
+
+# 1. Setup Nginx + SSL
+chmod +x nginx/setup.sh
+./nginx/setup.sh
+
+# 2. Deploy aplicação
+chmod +x deploy-demo.sh
+./deploy-demo.sh
+
+# 3. Hardening (SSH + Database)
+chmod +x harden-ssh.sh setup-db-security.sh
+./harden-ssh.sh
+./setup-db-security.sh
+```
+
+- API: https://api.seudominio.com
 
 Requer:
-- PostgreSQL 16+
-- Java 21+
-- Node 20+ (build do frontend)
-- HTTPS (Let's Encrypt, Cloudflare, etc)
+- Ubuntu 22.04+ (ou Debian 11+)
+- Docker + Docker Compose
+- Domínio com DNS configurado
 
 ## Variáveis de Ambiente
 
@@ -159,37 +186,22 @@ npm run build
 
 Servir `frontend/dist/` com Nginx ou CDN.
 
-## Nginx (Exemplo)
+## Nginx
 
-```nginx
-server {
-    listen 80;
-    server_name seudominio.com;
-    return 301 https://$server_name$request_uri;
-}
+Configuração completa em `infra/demo/nginx/reviso-api.conf`.
 
-server {
-    listen 443 ssl http2;
-    server_name seudominio.com;
+**Recursos:**
+- HTTPS com Let's Encrypt
+- Rate limiting (/auth, /recover)
+- Security headers (HSTS, CSP, Permissions-Policy)
+- Actuator restrito a localhost
+- server_tokens off
 
-    ssl_certificate /etc/letsencrypt/live/seudominio.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/seudominio.com/privkey.pem;
-
-    # Frontend
-    location / {
-        root /var/www/reviso/frontend/dist;
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Backend API
-    location /api/ {
-        proxy_pass http://localhost:8080/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
+**Setup automático:**
+```bash
+cd infra/demo
+chmod +x nginx/setup.sh
+./nginx/setup.sh
 ```
 
 ## Database Migrations
@@ -285,16 +297,27 @@ Se houver upload de arquivos, backup de:
 
 ## Checklist Deploy
 
-- [ ] Variáveis de ambiente configuradas
-- [ ] `JWT_SECRET` forte (64+ chars)
-- [ ] Stripe produtos criados e `price_id` atualizados
-- [ ] Stripe webhook configurado e testado
+**Pré-Deploy:**
+- [ ] DNS configurado (api.seudominio.com)
+- [ ] SSH key no servidor
+- [ ] .env.demo com valores reais
+- [ ] Stripe produtos criados e price_id atualizados
 - [ ] Resend domínio verificado
-- [ ] HTTPS habilitado
-- [ ] CORS configurado com domínio real
-- [ ] Nginx configurado
-- [ ] Database migrations aplicadas
-- [ ] Health check respondendo
-- [ ] Logs configurados
-- [ ] Backup automático configurado
-- [ ] Monitoramento ativo
+
+**Deploy:**
+```bash
+cd infra/demo
+./nginx/setup.sh
+./deploy-demo.sh
+./harden-ssh.sh
+./setup-db-security.sh
+```
+
+**Pós-Deploy:**
+- [ ] Health check: `curl https://api.seudominio.com/actuator/health`
+- [ ] Firewall: `sudo ufw status`
+- [ ] Fail2ban: `sudo fail2ban-client status`
+- [ ] Backup testado: `/usr/local/bin/backup-reviso-db.sh`
+- [ ] Headers: https://securityheaders.com
+
+Ver [SECURITY_CHECKLIST_DEMO.md](SECURITY_CHECKLIST_DEMO.md).

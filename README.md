@@ -1,122 +1,91 @@
-# Reviso Gestão de Demandas
+# Reviso Demand Manager
 
-Reviso é um sistema B2B para agência de publicidade gerenciar demandas de clientes do briefing à entrega, com histórico (audit trail) e métricas por relatórios.
+B2B demand management system for advertising agencies. Tracks client requests from briefing to delivery with audit trail and metrics.
 
-O que ele resolve:
+**Stack**: Java 21, Spring Boot 4.0.1, PostgreSQL 16, Angular 19
 
-Centraliza pedidos (peças, campanhas, landing pages etc.), controla status, prazos e revisões e permite enxergar gargalos e atrasos.
+## Quick Start
 
-## Fluxo principal
-
-- NEW → IN_PROGRESS → IN_REVIEW → (CHANGES_REQUESTED ↔ IN_PROGRESS) → APPROVED → DELIVERED → CLOSED
-
-## Tecnologias
-
-- Java 21, Spring Boot 4.0.1 (Web MVC, Data JPA, Validation, Actuator)
-- PostgreSQL 16 + Flyway para migrations
-- Maven para build
-- Angular em `frontend/` (frontend oficial)
-
-## Estrutura do repositório
-
-- Backend (Spring Boot): `backend/`
-- Frontend (Angular): `frontend/`
-- Documentação: `docs/`
-- Arquivos auxiliares de banco: `db/`
-
-## Requisitos
-
-- JDK 21+
-- Maven Wrapper (`./mvnw`) incluído
-- Docker + Docker Compose (recomendado para rodar a stack completa)
-
-Para rodar o backend fora do Docker, você vai precisar de PostgreSQL acessível localmente e ajustar as configs em `backend/src/main/resources/application.properties` (ou variáveis de ambiente).
-
-## Endpoints principais
-
-- Auth
-  - `POST /auth/login` – login e retorno do JWT
-- Briefings (cliente)
-  - `POST /briefings` – cria briefing (payload: `title`, `description`)
-  - `GET /briefings/mine` – lista briefings do cliente logado
-- Demandas
-  - `POST /requests` – cria demanda
-  - `GET /requests` – lista demandas (agência)
-  - `GET /requests/mine` – lista demandas do cliente logado
-  - `GET /requests/{id}/events?onlyVisibleToClient=true` – eventos visíveis ao cliente
-
-Documentação mais completa (B2B/RBAC/exemplos): veja `docs/API_B2B.md`.
-
-## Banco de dados
-
-- Migrations Flyway: `backend/src/main/resources/db/migration`
-- Para seed local: `db/seed_data.sql`
-
-## Interface web
-
-- Frontend (Angular via Nginx): `http://localhost:4200`
-- Backend (API): `http://localhost:8080`
-  - Observação: `GET /` no backend redireciona para o frontend.
-
-## Docker Compose (backend + frontend desacoplado)
-
-Subir tudo (Postgres + API + Angular via Nginx):
-
+### Development (localhost)
 ```bash
-docker compose up -d --build
+cd infra/dev
+cp .env.dev.example .env.dev
+# Edit .env.dev and set DB_PASSWORD
+
+docker compose -f docker-compose.dev.yml up -d --build
+
+# Seed database
+docker compose -f docker-compose.dev.yml exec -T postgres \
+  psql -U reviso -d reviso < ../../db/seed_data.sql
 ```
 
-- Backend (API): `http://localhost:8080`
-- Frontend Angular (Nginx): `http://localhost:4200`
+- Frontend: http://localhost:4200
+- Backend: http://localhost:8080
+- PostgreSQL: localhost:5433
 
-Para ajustar o redirect do backend `/`, defina `FRONTEND_BASE_URL` no compose/env (padrão: `http://localhost:4200`).
+### Demo/Production (public)
+```bash
+cd infra/demo
+cp .env.demo.example .env.demo
+# Edit .env.demo with real values
 
-## Email transacional (Resend)
+# Setup Nginx + SSL
+chmod +x nginx/setup.sh
+./nginx/setup.sh
 
-Para enviar emails em producao (ex.: recovery de codigo), configure:
+# Deploy
+chmod +x deploy-demo.sh
+./deploy-demo.sh
 
-- `RESEND_API_KEY`
-- `RESEND_FROM`
+# Hardening (SSH + Database)
+chmod +x harden-ssh.sh setup-db-security.sh
+./harden-ssh.sh
+./setup-db-security.sh
+```
 
-Opcionalmente:
+- API: https://api.seudominio.com
 
-- `RESEND_BASE_URL` (padrao: https://api.resend.com)
-- `RESEND_TIMEOUT_SECONDS`
+## Project Structure
 
-## Frontend Angular (Core)
+```
+backend/          Spring Boot API
+frontend/         Angular SPA
+infra/
+  dev/            Development environment
+  demo/           Demo/production environment
+docs/             Documentation
+db/               Database seeds
+```
 
-O projeto Angular fica em [frontend](frontend) e consome o backend via proxy em `/api/*`.
+## Environments
 
-Rodar no dev:
+| Environment | Profile | CORS | Logs | DB Port | Nginx |
+|-------------|---------|------|------|---------|-------|
+| **Dev** | `dev` | localhost | DEBUG | 5433 | No |
+| **Demo** | `demo` | Domain only | INFO | Not exposed | Yes |
 
-- Backend (Spring) no ar em `http://localhost:8080`
-- Frontend (Angular):
-  - `cd frontend`
-  - `npm install`
-  - `npm start`
+## Documentation
 
-O `npm start` usa `frontend/proxy.conf.json` para:
+- [Architecture](docs/ARCHITECTURE.md) - System architecture and multi-tenancy
+- [API Reference](docs/API.md) - Endpoints and examples
+- [Onboarding Flow](docs/ONBOARDING.md) - SaaS signup with Stripe
+- [Security](docs/SECURITY.md) - Auth, webhooks, secrets, rate limiting
+- [Deployment](docs/DEPLOY.md) - Production setup
+- [Runbook](docs/RUNBOOK.md) - Troubleshooting guide
+- [Infrastructure](infra/README.md) - Environment setup
 
-- Chamar o backend como `/api/*` no Angular
-- Proxy para `http://localhost:8080` com rewrite removendo o prefixo `/api`
+### Security Guides
+- [Security Checklist](docs/SECURITY_CHECKLIST_DEMO.md) - Complete demo checklist
+- [Rate Limiting](docs/SECURITY_RATE_LIMITING.md) - Strategy and monitoring
+- [HTTP Hardening](docs/SECURITY_HTTP_HARDENING.md) - Security headers
 
-Exemplo: `POST /api/auth/login` (Angular) → `POST /auth/login` (backend)
+## Request Workflow
 
-Observação: no Portal do Cliente, os campos extras (Tipo, Prioridade e Vencimento) são anexados ao texto da descrição do briefing para manter compatibilidade com a API atual do backend.
+```
+NEW → IN_PROGRESS → IN_REVIEW → CHANGES_REQUESTED ↔ IN_PROGRESS
+                              → APPROVED → DELIVERED → CLOSED
+```
 
-### Tailwind CSS
+## License
 
-Tailwind CSS is configured in `frontend/` and ready for utility-first styling.
-
-- Config: `frontend/tailwind.config.js` and `frontend/postcss.config.js`
-- Global directives: `frontend/src/styles.scss`
-- After `npm install`, start using Tailwind classes in templates
-
-## Monitoramento
-
-- Actuator habilitado: `http://localhost:8080/actuator/health`
-- Health via proxy do frontend: `http://localhost:4200/api/actuator/health`
-
-## Licença
-
-Projeto privado/experimental (licença não definida).
+Private/Experimental
