@@ -3,6 +3,7 @@ package com.guilherme.reviso_demand_manager.application;
 import com.guilherme.reviso_demand_manager.domain.Company;
 import com.guilherme.reviso_demand_manager.domain.User;
 import com.guilherme.reviso_demand_manager.domain.UserRole;
+import com.guilherme.reviso_demand_manager.infra.AccessProfileRepository;
 import com.guilherme.reviso_demand_manager.infra.CompanyRepository;
 import com.guilherme.reviso_demand_manager.infra.UserRepository;
 import com.guilherme.reviso_demand_manager.web.CreateUserDTO;
@@ -27,15 +28,18 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
+    private final AccessProfileRepository accessProfileRepository;
     private final PasswordEncoder passwordEncoder;
 
     public UserService(
         UserRepository userRepository,
         CompanyRepository companyRepository,
+        AccessProfileRepository accessProfileRepository,
         PasswordEncoder passwordEncoder
     ) {
         this.userRepository = userRepository;
         this.companyRepository = companyRepository;
+        this.accessProfileRepository = accessProfileRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -49,9 +53,19 @@ public class UserService {
         if (agencyId == null) {
             throw new IllegalArgumentException("agencyId is required");
         }
+
         Company company = resolveCompany(dto.role(), agencyId, dto.companyId(), dto.companyCode());
         UUID resolvedCompanyId = company != null ? company.getId() : null;
         UUID resolvedAgencyId = resolveUserAgencyId(dto.role(), agencyId, company);
+
+        UUID resolvedAccessProfileId = null;
+        if (dto.accessProfileId() != null) {
+            resolvedAccessProfileId = resolveAccessProfileId(dto.role(), dto.accessProfileId(), agencyId);
+        }
+        // invariável: só AGENCY_USER pode ter accessProfileId
+        if (dto.role() != UserRole.AGENCY_USER) {
+            resolvedAccessProfileId = null;
+        }
 
         User user = new User();
         user.setId(UUID.randomUUID());
@@ -61,6 +75,7 @@ public class UserService {
         user.setRole(dto.role());
         user.setAgencyId(resolvedAgencyId);
         user.setCompanyId(resolvedCompanyId);
+        user.setAccessProfileId(resolvedAccessProfileId);
         user.setActive(true);
         user.setCreatedAt(OffsetDateTime.now());
 
@@ -88,7 +103,7 @@ public class UserService {
         User user = userRepository.findByIdAndAgencyId(id, agencyId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario nao encontrado"));
 
-        if (!user.getEmail().equals(dto.email())) {
+        if (dto.email() != null && !user.getEmail().equals(dto.email())) {
             userRepository.findByEmail(dto.email())
                     .filter(existing -> !existing.getId().equals(id))
                     .ifPresent(existing -> {
@@ -96,15 +111,63 @@ public class UserService {
                     });
         }
 
-        Company company = resolveCompany(dto.role(), agencyId, dto.companyId(), dto.companyCode());
-        UUID resolvedCompanyId = company != null ? company.getId() : null;
-        UUID resolvedAgencyId = resolveUserAgencyId(dto.role(), agencyId, company);
+        // 1) aplica campos básicos
+        if (dto.fullName() != null) {
+            user.setFullName(dto.fullName());
+        }
+        if (dto.email() != null) {
+            user.setEmail(dto.email());
+        }
+        if (dto.role() != null) {
+            user.setRole(dto.role());
+        }
 
-        user.setFullName(dto.fullName());
-        user.setEmail(dto.email());
-        user.setRole(dto.role());
-        user.setAgencyId(resolvedAgencyId);
-        user.setCompanyId(resolvedCompanyId);
+        boolean roleChanged = dto.role() != null;
+        boolean companyProvided = dto.companyId() != null || (dto.companyCode() != null && !dto.companyCode().isBlank());
+
+        Company company = null;
+
+        // 2) Company/Agency invariants
+        if (user.getRole() == UserRole.CLIENT_USER) {
+            // Para CLIENT_USER, aceita trocar/validar company se o payload trouxe info ou role mudou
+            if (roleChanged || companyProvided) {
+                company = resolveCompany(user.getRole(), agencyId, dto.companyId(), dto.companyCode());
+                user.setCompanyId(company.getId());
+            }
+        } else {
+            // Invariável: roles != CLIENT_USER não carregam company
+            user.setCompanyId(null);
+        }
+
+        // agencyId pode depender da company quando CLIENT_USER
+        // Se o role é CLIENT_USER, precisamos de company para validar agency.
+        // Então, se role final é CLIENT_USER e não temos company resolvida aqui,
+        // buscamos pela company atual do user (pra não exigir resend no PATCH).
+        if (user.getRole() == UserRole.CLIENT_USER) {
+            if (company == null) {
+                UUID currentCompanyId = user.getCompanyId();
+                if (currentCompanyId == null) {
+                    throw new IllegalArgumentException("CLIENT_USER deve ter companyId ou companyCode");
+                }
+                company = findCompanyById(currentCompanyId, agencyId);
+            }
+            user.setAgencyId(resolveUserAgencyId(user.getRole(), agencyId, company));
+        } else {
+            user.setAgencyId(agencyId);
+        }
+
+        // 3) invariável: se role != AGENCY_USER, zera accessProfileId (sem zumbi)
+        if (user.getRole() != UserRole.AGENCY_USER) {
+            user.setAccessProfileId(null);
+        } else {
+            // PATCH-friendly: só muda se vier no DTO
+            if (dto.accessProfileId() != null) {
+                UUID resolvedAccessProfileId = resolveAccessProfileId(user.getRole(), dto.accessProfileId(), agencyId);
+                user.setAccessProfileId(resolvedAccessProfileId);
+            }
+            // se dto.accessProfileId() == null: preserva o perfil atual
+        }
+
         if (dto.active() != null) {
             user.setActive(dto.active());
         }
@@ -131,6 +194,7 @@ public class UserService {
                 user.getRole(),
                 user.getAgencyId(),
                 user.getCompanyId(),
+                user.getAccessProfileId(),
                 companyCode,
                 user.getActive(),
                 user.getCreatedAt()
@@ -182,6 +246,21 @@ public class UserService {
             return companyAgencyId;
         }
         return agencyId;
+    }
+
+    private UUID resolveAccessProfileId(UserRole role, UUID accessProfileId, UUID agencyId) {
+        if (accessProfileId == null) {
+            return null;
+        }
+        if (role != UserRole.AGENCY_USER) {
+            throw new IllegalArgumentException("accessProfileId apenas para AGENCY_USER");
+        }
+        if (agencyId == null) {
+            throw new IllegalArgumentException("agencyId is required");
+        }
+        accessProfileRepository.findByIdAndAgencyId(accessProfileId, agencyId)
+            .orElseThrow(() -> new IllegalArgumentException("Perfil de acesso invalido"));
+        return accessProfileId;
     }
 
     private Company findCompanyById(UUID companyId, UUID agencyId) {

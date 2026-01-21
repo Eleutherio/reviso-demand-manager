@@ -20,6 +20,8 @@ public record UpdateUserDTO(
 
     UUID companyId,
     String companyCode,
+    UUID accessProfileId,
     Boolean active
 ) {
 }
+

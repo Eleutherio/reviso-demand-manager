@@ -11,8 +11,10 @@ public record UserDTO(
     UserRole role,
     UUID agencyId,
     UUID companyId,
+    UUID accessProfileId,
     String companyCode,
     Boolean active,
     OffsetDateTime createdAt
 ) {
 }
+

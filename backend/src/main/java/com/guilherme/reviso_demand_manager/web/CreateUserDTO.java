@@ -8,20 +8,21 @@ import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
 public record CreateUserDTO(
-    @NotBlank(message = "Nome completo é obrigatório")
+    @NotBlank(message = "Nome completo e obrigatorio")
     String fullName,
-    
-    @NotBlank(message = "Email é obrigatório")
-    @Email(message = "Email inválido")
+
+    @NotBlank(message = "Email e obrigatorio")
+    @Email(message = "Email invalido")
     String email,
-    
-    @NotBlank(message = "Senha é obrigatória")
+
+    @NotBlank(message = "Senha e obrigatoria")
     String password,
-    
-    @NotNull(message = "Role é obrigatória")
+
+    @NotNull(message = "Role e obrigatoria")
     UserRole role,
-    
+
     UUID companyId,
-    String companyCode
+    String companyCode,
+    UUID accessProfileId
 ) {
 }

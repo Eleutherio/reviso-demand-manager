@@ -34,6 +34,9 @@ public class User {
     @Column(name = "agency_id", columnDefinition = "UUID")
     private UUID agencyId;
 
+    @Column(name = "access_profile_id", columnDefinition = "UUID")
+    private UUID accessProfileId;
+
     @Column(nullable = false)
     private Boolean active;
 
@@ -94,6 +97,14 @@ public class User {
 
     public void setAgencyId(UUID agencyId) {
         this.agencyId = agencyId;
+    }
+
+    public UUID getAccessProfileId() {
+        return accessProfileId;
+    }
+
+    public void setAccessProfileId(UUID accessProfileId) {
+        this.accessProfileId = accessProfileId;
     }
 
     public Boolean getActive() {
