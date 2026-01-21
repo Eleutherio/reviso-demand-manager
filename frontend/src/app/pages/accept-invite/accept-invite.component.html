@@ -1,0 +1,53 @@
+<div class="invite">
+  <div class="invite__card">
+    <h1 class="invite__title">Aceitar convite</h1>
+    <p class="invite__subtitle">Defina sua senha para acessar o {{ portalLabel }}.</p>
+
+    @if (tokenInvalid) {
+    <div class="error invite__hint">Token invalido ou expirado.</div>
+    <button class="btn btn--ghost" type="button" (click)="goToLogin()">
+      {{ loginLabel }}
+    </button>
+    } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()" class="invite__form">
+      <label class="field">
+        <span class="field__label">Nova senha</span>
+        <input
+          class="field__input"
+          type="password"
+          formControlName="password"
+          autocomplete="new-password"
+        />
+      </label>
+
+      <label class="field">
+        <span class="field__label">Confirmar senha</span>
+        <input
+          class="field__input"
+          type="password"
+          formControlName="confirmPassword"
+          autocomplete="new-password"
+        />
+      </label>
+
+      <button class="btn" type="submit" [disabled]="loading">
+        {{ loading ? 'Salvando...' : 'Criar senha' }}
+      </button>
+    </form>
+
+    <div class="invite__actions">
+      <button class="btn btn--ghost" type="button" (click)="goToLogin()">
+        {{ loginLabel }}
+      </button>
+    </div>
+
+    <div class="invite__hint">Minimo 8 caracteres.</div>
+    @if (success) {
+    <div class="success invite__hint">{{ success }}</div>
+    }
+    @if (error) {
+    <div class="error invite__hint">{{ error }}</div>
+    }
+    }
+  </div>
+</div>

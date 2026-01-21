@@ -4,6 +4,7 @@ import { AuthGuard } from './core/auth.guard';
 import { RoleGuard } from './core/role.guard';
 import { ShellComponent } from './layout/shell/shell.component';
 import { LoginComponent } from './pages/login/login.component';
+import { AcceptInviteComponent } from './pages/accept-invite/accept-invite.component';
 import { RoleLandingComponent } from './pages/role-landing/role-landing.component';
 import { ClientDashboardComponent } from './pages/client/client-dashboard.component';
 import { ClientBriefingsComponent } from './pages/client/client-briefings.component';
@@ -21,6 +22,7 @@ import { AdminUsersComponent } from './pages/admin/admin-users.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
+  { path: 'invite', component: AcceptInviteComponent },
   {
     path: '',
     component: ShellComponent,
