@@ -12,5 +12,6 @@ public record SubscriptionPlanDTO(
         String currency,
         String interval,
         Integer maxUsers,
-        Integer maxRequestsPerMonth
+        Integer maxRequestsPerMonth,
+        Integer maxCompanies
 ) {}

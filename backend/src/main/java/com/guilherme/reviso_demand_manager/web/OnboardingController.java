@@ -55,7 +55,8 @@ public class OnboardingController {
                         "BRL",
                         "month",
                         plan.getMaxUsers(),
-                        plan.getMaxRequestsPerMonth()
+                        plan.getMaxRequestsPerMonth(),
+                        plan.getMaxCompanies()
                 ))
                 .toList();
     }

@@ -31,6 +31,9 @@ public class SubscriptionPlan {
     @Column(name = "max_requests_per_month")
     private Integer maxRequestsPerMonth;
 
+    @Column(name = "max_companies")
+    private Integer maxCompanies;
+
     @Column(nullable = false)
     private Boolean active;
 
@@ -91,6 +94,14 @@ public class SubscriptionPlan {
 
     public void setMaxRequestsPerMonth(Integer maxRequestsPerMonth) {
         this.maxRequestsPerMonth = maxRequestsPerMonth;
+    }
+
+    public Integer getMaxCompanies() {
+        return maxCompanies;
+    }
+
+    public void setMaxCompanies(Integer maxCompanies) {
+        this.maxCompanies = maxCompanies;
     }
 
     public Boolean getActive() {

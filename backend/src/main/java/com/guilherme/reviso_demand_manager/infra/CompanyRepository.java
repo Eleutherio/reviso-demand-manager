@@ -16,4 +16,5 @@ public interface CompanyRepository extends JpaRepository<Company, UUID> {
     Optional<Company> findByIdAndAgencyId(UUID id, UUID agencyId);
     List<Company> findByAgencyIdAndIdIn(UUID agencyId, Collection<UUID> ids);
     boolean existsByCompanyCodeAndAgencyId(String companyCode, UUID agencyId);
+    long countByAgencyId(UUID agencyId);
 }
