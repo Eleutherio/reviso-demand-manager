@@ -1,8 +1,10 @@
-﻿import { Component } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { catchError, firstValueFrom, forkJoin, map, of, startWith, Subject, switchMap } from 'rxjs';
 import { AdminCompaniesApi } from '../../api/admin-companies.api';
+import { AdminAccessProfilesApi, AccessProfileDto } from '../../api/admin-access-profiles.api';
+import { AdminInvitesApi, CreateAgencyUserInviteDto, CreateClientUserInviteDto } from '../../api/admin-invites.api';
 import { AdminUsersApi, CreateUserDto, UpdateUserDto } from '../../api/admin-users.api';
 import { CompanyDto } from '../../api/company';
 import { UserDto, UserRole } from '../../api/user';
@@ -16,10 +18,10 @@ import { UserDto, UserRole } from '../../api/user';
     <section class="users-page">
       <header class="users-header">
         <div class="users-title-block">
-          <p class="users-eyebrow">Administração</p>
-          <h2 class="users-title">Usuários</h2>
+          <p class="users-eyebrow">Administracao</p>
+          <h2 class="users-title">Usuarios</h2>
           <p class="users-subtitle">
-            Gestão simples de papéis do time criativo ou de acesso das empresas.
+            Agora o fluxo principal e convite. Usuarios recebem email para criar a senha.
           </p>
         </div>
       </header>
@@ -28,15 +30,43 @@ import { UserDto, UserRole } from '../../api/user';
         <section class="users-card users-card--form">
           <div class="users-card__head">
             <h3 class="users-card__title">
-              {{ editingId ? 'Editar usuário' : 'Criar novo usuário' }}
+              {{ editingId ? 'Editar usuario' : 'Adicionar usuario' }}
             </h3>
-            <p class="users-muted">Preencha os dados para criar ou atualizar o cadastro.</p>
+            <p class="users-muted">Gerencie usuarios e convites em um unico painel.</p>
           </div>
 
           <form (submit)="onSubmit($event)" class="users-form">
+            @if (!editingId) {
+            <label class="users-field">
+              <span class="users-field__label">Modo de cadastro</span>
+              <div class="users-mode">
+                <label class="users-check">
+                  <input
+                    type="radio"
+                    name="createMode"
+                    value="invite"
+                    [checked]="createMode === 'invite'"
+                    (change)="setCreateMode('invite')"
+                  />
+                  <span>Convite por email</span>
+                </label>
+                <label class="users-check">
+                  <input
+                    type="radio"
+                    name="createMode"
+                    value="manual"
+                    [checked]="createMode === 'manual'"
+                    (change)="setCreateMode('manual')"
+                  />
+                  <span>Cadastro manual</span>
+                </label>
+              </div>
+            </label>
+            }
+
             <label class="users-field">
               <span class="users-field__label">
-                Papel do usuário <span class="users-required">*</span>
+                Papel do usuario <span class="users-required">*</span>
               </span>
               <select
                 name="role"
@@ -84,7 +114,32 @@ import { UserDto, UserRole } from '../../api/user';
               }
             </label>
 
-            @if (!editingId) {
+            @if (form.role !== 'CLIENT_USER') {
+            <label class="users-field">
+              <span class="users-field__label">
+                Perfil de acesso <span class="users-required">*</span>
+              </span>
+              <select
+                name="accessProfileId"
+                required
+                [value]="form.accessProfileId"
+                class="users-select"
+                [class.users-input--error]="fieldErrors.accessProfileId"
+                (change)="onAccessProfileChange($event)"
+              >
+                <option value="" disabled>Selecione</option>
+                @for (p of selectableProfiles; track p.id) {
+                <option [value]="p.id">{{ p.name }}</option>
+                }
+              </select>
+              @if (fieldErrors.accessProfileId) {
+              <small class="users-error">{{ fieldErrors.accessProfileId }}</small>
+              } @else if (selectableProfiles.length === 0) {
+              <small class="users-muted">Nenhum perfil de acesso disponivel.</small>
+              }
+            </label>
+            }
+            @if (!editingId && createMode === 'manual') {
             <label class="users-field">
               <span class="users-field__label">Senha <span class="users-required">*</span></span>
               <input
@@ -130,7 +185,7 @@ import { UserDto, UserRole } from '../../api/user';
                 />
                 <span>Mostrar senha</span>
               </label>
-              <small class="users-muted">Mínimo 8 caracteres.</small>
+              <small class="users-muted">Minimo 8 caracteres.</small>
             </div>
             }
 
@@ -144,7 +199,7 @@ import { UserDto, UserRole } from '../../api/user';
                 (change)="form.activeStr = getBoolStr($event)"
               >
                 <option value="true">Sim</option>
-                <option value="false">Não</option>
+                <option value="false">Nao</option>
               </select>
             </label>
             }
@@ -152,7 +207,7 @@ import { UserDto, UserRole } from '../../api/user';
             @if (form.role === 'CLIENT_USER') {
             <label class="users-field">
               <span class="users-field__label">
-                Empresa (código ou UUID) <span class="users-required">*</span>
+                Empresa (codigo ou UUID) <span class="users-required">*</span>
               </span>
               <input
                 name="companyId"
@@ -178,14 +233,22 @@ import { UserDto, UserRole } from '../../api/user';
 
             @if (clientCompanies.length === 0) {
             <small class="users-muted">
-              Cadastre uma empresa cliente para usar o código.
+              Cadastre uma empresa cliente para usar o codigo.
             </small>
             }
             }
 
             <div class="users-form__actions">
               <button type="submit" class="btn btn--primary">
-                Salvar
+                {{
+                  editingId
+                    ? 'Salvar'
+                    : createMode === 'invite'
+                      ? inviteSent
+                        ? 'Enviado'
+                        : 'Enviar convite'
+                      : 'Criar usuario'
+                }}
               </button>
               @if (editingId) {
               <button type="button" class="btn btn--ghost" (click)="cancelEdit()">
@@ -193,6 +256,9 @@ import { UserDto, UserRole } from '../../api/user';
               </button>
               }
             </div>
+            @if (formSuccess) {
+            <div class="users-alert">{{ formSuccess }}</div>
+            }
             @if (formError) {
             <div class="users-alert users-alert--error">{{ formError }}</div>
             }
@@ -202,7 +268,7 @@ import { UserDto, UserRole } from '../../api/user';
         <section class="users-card users-card--list">
           <div class="users-card__head users-card__head--row">
             <div>
-              <h3 class="users-card__title">Usuários cadastrados</h3>
+              <h3 class="users-card__title">Usuarios cadastrados</h3>
               <p class="users-muted">Filtre e acompanhe os acessos do time.</p>
             </div>
           </div>
@@ -212,7 +278,7 @@ import { UserDto, UserRole } from '../../api/user';
           <div class="users-state">Carregando...</div>
           } @else if (vm.status === 'error') {
           <div class="users-alert users-alert--error">
-            Erro ao carregar usuários: {{ vm.message }}
+            Erro ao carregar usuarios: {{ vm.message }}
           </div>
           } @else {
           <div class="users-toolbar">
@@ -224,10 +290,10 @@ import { UserDto, UserRole } from '../../api/user';
 
           <div class="users-filters">
             <label class="users-field">
-              <span class="users-field__label">Buscar usuários</span>
+              <span class="users-field__label">Buscar usuarios</span>
               <input
                 name="search"
-                placeholder="Nome, email, empresa ou código"
+                placeholder="Nome, email, empresa ou codigo"
                 [value]="searchTerm"
                 class="users-input"
                 (input)="searchTerm = getValue($event)"
@@ -235,7 +301,7 @@ import { UserDto, UserRole } from '../../api/user';
             </label>
 
             <label class="users-field">
-              <span class="users-field__label">Papel do usuário</span>
+              <span class="users-field__label">Papel do usuario</span>
               <select
                 name="filterRole"
                 [value]="filterRole"
@@ -263,11 +329,10 @@ import { UserDto, UserRole } from '../../api/user';
               </select>
             </label>
           </div>
-
           @if (vm.users.length === 0) {
-          <div class="users-empty">Nenhum usuário cadastrado.</div>
+          <div class="users-empty">Nenhum usuario cadastrado.</div>
           } @else if (getFilteredUsers(vm.users).length === 0) {
-          <div class="users-empty">Nenhum usuário encontrado com os filtros atuais.</div>
+          <div class="users-empty">Nenhum usuario encontrado com os filtros atuais.</div>
           } @else {
           <div class="users-table-wrap">
             <table class="users-table">
@@ -275,10 +340,10 @@ import { UserDto, UserRole } from '../../api/user';
                 <tr>
                   <th>Nome</th>
                   <th>Email</th>
-                  <th>Papel do usuário</th>
+                  <th>Papel do usuario</th>
                   <th>Ativo</th>
                   <th>Empresa</th>
-                  <th>Código</th>
+                  <th>Codigo</th>
                   <th>Criado em</th>
                   <th></th>
                 </tr>
@@ -304,7 +369,7 @@ import { UserDto, UserRole } from '../../api/user';
                       [class.users-chip--active]="u.active"
                       [class.users-chip--inactive]="!u.active"
                     >
-                      {{ u.active ? 'Sim' : 'Não' }}
+                      {{ u.active ? 'Sim' : 'Nao' }}
                     </span>
                   </td>
                   <td>{{ getCompanyName(u) ?? '-' }}</td>
@@ -353,7 +418,7 @@ import { UserDto, UserRole } from '../../api/user';
       <div class="users-modal" (click)="closeDeleteModal()">
         <div class="users-modal__panel" (click)="$event.stopPropagation()">
           <div class="users-modal__head">
-            <h4 class="users-modal__title">Confirmar exclusão</h4>
+            <h4 class="users-modal__title">Confirmar exclusao</h4>
             <button
               type="button"
               class="users-modal__close"
@@ -373,7 +438,7 @@ import { UserDto, UserRole } from '../../api/user';
               [checked]="deleteConfirmed"
               (change)="deleteConfirmed = getChecked($event); deleteError = null"
             />
-            <span>Estou ciente que essa ação não pode ser desfeita.</span>
+            <span>Estou ciente que essa acao nao pode ser desfeita.</span>
           </label>
           @if (deleteError) {
           <div class="users-alert users-alert--error">{{ deleteError }}</div>
@@ -405,17 +470,21 @@ export class AdminUsersComponent {
   readonly vm$;
   readonly roleLabels: Record<UserRole, string> = {
     AGENCY_ADMIN: 'Administrador',
-    AGENCY_USER: 'Usuário',
+    AGENCY_USER: 'Usuario',
     CLIENT_USER: 'Cliente',
   };
 
   companies: CompanyDto[] = [];
   clientCompanies: CompanyDto[] = [];
+  accessProfiles: AccessProfileDto[] = [];
+  selectableProfiles: AccessProfileDto[] = [];
 
   private companyById = new Map<string, CompanyDto>();
   private companyByCode = new Map<string, CompanyDto>();
+  private readonly allowedProfileNames = ['atendimento', 'criacao', 'gestor'];
 
   editingId: string | null = null;
+  createMode: 'invite' | 'manual' = 'invite';
 
   form: {
     fullName: string;
@@ -424,6 +493,7 @@ export class AdminUsersComponent {
     confirmPassword: string;
     role: UserRole;
     companyIdText: string;
+    accessProfileId: string;
     activeStr: 'true' | 'false';
   } = {
     fullName: '',
@@ -432,10 +502,13 @@ export class AdminUsersComponent {
     confirmPassword: '',
     role: 'AGENCY_USER',
     companyIdText: '',
+    accessProfileId: '',
     activeStr: 'true',
   };
 
   formError: string | null = null;
+  formSuccess: string | null = null;
+  inviteSent = false;
   deleteTarget: UserDto | null = null;
   deleteConfirmed = false;
   deletePending = false;
@@ -443,7 +516,7 @@ export class AdminUsersComponent {
   copiedUserId: string | null = null;
   private copyResetId: number | null = null;
   fieldErrors: Partial<
-    Record<'fullName' | 'email' | 'password' | 'confirmPassword' | 'companyId', string>
+    Record<'fullName' | 'email' | 'password' | 'confirmPassword' | 'companyId' | 'accessProfileId', string>
   > = {};
   searchTerm = '';
   filterRole: '' | UserRole = '';
@@ -454,7 +527,9 @@ export class AdminUsersComponent {
 
   constructor(
     private readonly api: AdminUsersApi,
-    private readonly companiesApi: AdminCompaniesApi
+    private readonly invitesApi: AdminInvitesApi,
+    private readonly companiesApi: AdminCompaniesApi,
+    private readonly accessProfilesApi: AdminAccessProfilesApi
   ) {
     this.vm$ = this.refresh$.pipe(
       startWith(undefined),
@@ -462,26 +537,29 @@ export class AdminUsersComponent {
         forkJoin({
           users: this.api.listUsers(),
           companies: this.companiesApi.listCompanies(),
+          profiles: this.accessProfilesApi.listAccessProfiles(),
         })
       ),
-      map(({ users, companies }) => {
+      map(({ users, companies, profiles }) => {
         this.setCompanies(companies);
+        this.setAccessProfiles(profiles);
         return { status: 'ready' as const, users };
       }),
       startWith({ status: 'loading' as const }),
       catchError((err: unknown) => {
         this.setCompanies([]);
+        this.setAccessProfiles([]);
         if (err instanceof HttpErrorResponse) {
           if (err.status === 401) {
             return of({
               status: 'error' as const,
-              message: 'Não autenticado (401). Faça login novamente.',
+              message: 'Nao autenticado (401). Faca login novamente.',
             });
           }
           if (err.status === 403) {
             return of({
               status: 'error' as const,
-              message: 'Sem permissão (403). Este endpoint exige AGENCY_ADMIN.',
+              message: 'Sem permissao (403). Este endpoint exige AGENCY_ADMIN.',
             });
           }
           return of({
@@ -495,7 +573,6 @@ export class AdminUsersComponent {
       })
     );
   }
-
   private setCompanies(companies: CompanyDto[]): void {
     this.companies = companies;
     this.clientCompanies = companies.filter((company) =>
@@ -507,6 +584,38 @@ export class AdminUsersComponent {
         .filter((company) => company.companyCode)
         .map((company) => [company.companyCode.toLowerCase(), company])
     );
+  }
+
+  private setAccessProfiles(profiles: AccessProfileDto[]): void {
+    this.accessProfiles = profiles;
+    this.selectableProfiles = profiles.filter((profile) =>
+      this.allowedProfileNames.includes(profile.name.trim().toLowerCase())
+    );
+    this.applyDefaultAccessProfile();
+  }
+
+  private applyDefaultAccessProfile(): void {
+    if (this.editingId) return;
+    if (this.form.role === 'CLIENT_USER') return;
+    if (this.form.accessProfileId) return;
+    this.form.accessProfileId = this.resolveDefaultAccessProfileId();
+  }
+
+  private resolveDefaultAccessProfileId(): string {
+    const defaultProfile = this.selectableProfiles.find((profile) => profile.isDefault);
+    if (defaultProfile) {
+      return defaultProfile.id;
+    }
+    return this.selectableProfiles[0]?.id ?? '';
+  }
+
+  setCreateMode(mode: 'invite' | 'manual'): void {
+    if (this.form.role === 'AGENCY_ADMIN' && mode === 'invite') {
+      this.createMode = 'manual';
+      return;
+    }
+    this.createMode = mode;
+    this.inviteSent = false;
   }
 
   getValue(ev: Event): string {
@@ -596,7 +705,9 @@ export class AdminUsersComponent {
 
   startEdit(u: UserDto): void {
     this.formError = null;
+    this.formSuccess = null;
     this.fieldErrors = {};
+    this.inviteSent = false;
     this.editingId = u.id;
     this.form.fullName = u.fullName;
     this.form.email = u.email;
@@ -604,12 +715,15 @@ export class AdminUsersComponent {
     this.form.confirmPassword = '';
     this.form.role = u.role;
     this.form.companyIdText = u.companyCode ?? u.companyId ?? '';
+    this.form.accessProfileId = u.accessProfileId ?? '';
     this.form.activeStr = u.active ? 'true' : 'false';
   }
 
   cancelEdit(): void {
     this.formError = null;
+    this.formSuccess = null;
     this.fieldErrors = {};
+    this.inviteSent = false;
     this.editingId = null;
     this.resetForm();
   }
@@ -622,8 +736,11 @@ export class AdminUsersComponent {
       confirmPassword: '',
       role: 'AGENCY_USER',
       companyIdText: '',
+      accessProfileId: this.resolveDefaultAccessProfileId(),
       activeStr: 'true',
     };
+    this.createMode = 'invite';
+    this.inviteSent = false;
     this.showPassword = false;
     this.fieldErrors = {};
   }
@@ -648,6 +765,16 @@ export class AdminUsersComponent {
     if (this.fieldErrors[field] && value.trim()) {
       delete this.fieldErrors[field];
     }
+    this.inviteSent = false;
+  }
+
+  onAccessProfileChange(ev: Event): void {
+    const target = ev.target as HTMLSelectElement;
+    this.form.accessProfileId = target.value;
+    if (this.fieldErrors.accessProfileId && target.value) {
+      delete this.fieldErrors.accessProfileId;
+    }
+    this.inviteSent = false;
   }
 
   onRoleChange(ev: Event): void {
@@ -655,7 +782,18 @@ export class AdminUsersComponent {
     if (this.form.role !== 'CLIENT_USER') {
       this.form.companyIdText = '';
       delete this.fieldErrors.companyId;
+      if (!this.form.accessProfileId) {
+        this.form.accessProfileId = this.resolveDefaultAccessProfileId();
+      }
+    } else {
+      this.form.accessProfileId = '';
+      delete this.fieldErrors.accessProfileId;
     }
+
+    if (this.form.role === 'AGENCY_ADMIN') {
+      this.createMode = 'manual';
+    }
+    this.inviteSent = false;
   }
 
   private validateForm(): boolean {
@@ -669,7 +807,11 @@ export class AdminUsersComponent {
       errors.email = 'Informe o email.';
     }
 
-    if (!this.editingId) {
+    if (!this.editingId && this.createMode === 'invite' && this.form.role === 'AGENCY_ADMIN') {
+      errors.fullName = 'AGENCY_ADMIN deve ser criado via cadastro manual.';
+    }
+
+    if (!this.editingId && this.createMode === 'manual') {
       const password = this.form.password.trim();
       const confirmPassword = this.form.confirmPassword.trim();
       if (!password) {
@@ -680,44 +822,51 @@ export class AdminUsersComponent {
       if (!confirmPassword) {
         errors.confirmPassword = 'Repita a senha.';
       } else if (password && confirmPassword !== password) {
-        errors.confirmPassword = 'As senhas não conferem.';
+        errors.confirmPassword = 'As senhas nao conferem.';
       }
     }
 
     if (this.form.role === 'CLIENT_USER') {
       const companyRef = this.form.companyIdText.trim();
       if (!companyRef) {
-        errors.companyId = 'Informe o código da empresa.';
+        errors.companyId = 'Informe o codigo da empresa.';
       } else {
         const isUuid = this.isUuid(companyRef);
         const normalizedCode = this.normalizeCompanyCode(companyRef);
         const isCode = this.isCompanyCode(normalizedCode);
 
         if (!isUuid && !isCode) {
-          errors.companyId = 'Informe um UUID válido ou código no formato AAAA-CL-XXX.';
+          errors.companyId = 'Informe um UUID valido ou codigo no formato AAAA-CL-XXX.';
         } else if (
           isUuid &&
           this.companyById.size > 0 &&
           !this.companyById.has(companyRef)
         ) {
-          errors.companyId = 'Empresa não encontrada para este UUID.';
+          errors.companyId = 'Empresa nao encontrada para este UUID.';
         } else if (
           !isUuid &&
           this.companyByCode.size > 0 &&
           !this.companyByCode.has(normalizedCode.toLowerCase())
         ) {
-          errors.companyId = 'Código de empresa não encontrado.';
+          errors.companyId = 'Codigo de empresa nao encontrado.';
         }
+      }
+    } else {
+      const accessProfileId = this.form.accessProfileId.trim();
+      if (!accessProfileId) {
+        errors.accessProfileId = 'Selecione o perfil de acesso.';
+      } else if (!this.isUuid(accessProfileId)) {
+        errors.accessProfileId = 'Perfil de acesso invalido.';
       }
     }
 
     this.fieldErrors = errors;
     return Object.keys(errors).length === 0;
   }
-
   async onSubmit(ev: Event): Promise<void> {
     ev.preventDefault();
     this.formError = null;
+    this.formSuccess = null;
     this.fieldErrors = {};
 
     if (!this.validateForm()) {
@@ -729,6 +878,7 @@ export class AdminUsersComponent {
     const isUuid = hasCompanyRef && this.isUuid(companyRef);
     const companyId = isUuid ? companyRef : null;
     const companyCode = hasCompanyRef && !isUuid ? this.normalizeCompanyCode(companyRef) : null;
+    const accessProfileId = this.form.accessProfileId.trim();
 
     const base = {
       fullName: this.form.fullName.trim(),
@@ -742,6 +892,7 @@ export class AdminUsersComponent {
       if (this.editingId) {
         const dto: UpdateUserDto = {
           ...base,
+          ...(this.form.role === 'CLIENT_USER' ? {} : { accessProfileId }),
           active: this.form.activeStr === 'true',
         };
         await firstValueFrom(this.api.updateUser(this.editingId, dto));
@@ -750,11 +901,42 @@ export class AdminUsersComponent {
         return;
       }
 
+      if (this.createMode === 'invite') {
+        if (this.form.role === 'AGENCY_USER') {
+          const inviteDto: CreateAgencyUserInviteDto = {
+            fullName: base.fullName,
+            email: base.email,
+            accessProfileId,
+          };
+          await firstValueFrom(this.invitesApi.createAgencyUserInvite(inviteDto));
+          this.formSuccess = 'Convite enviado com sucesso.';
+          this.resetForm();
+          this.inviteSent = true;
+          return;
+        }
+
+        if (this.form.role === 'CLIENT_USER') {
+          const inviteDto: CreateClientUserInviteDto = {
+            fullName: base.fullName,
+            email: base.email,
+            companyId: base.companyId,
+            companyCode: base.companyCode,
+          };
+          await firstValueFrom(this.invitesApi.createClientUserInvite(inviteDto));
+          this.formSuccess = 'Convite enviado com sucesso.';
+          this.resetForm();
+          this.inviteSent = true;
+          return;
+        }
+      }
+
       const dto: CreateUserDto = {
         ...base,
+        ...(this.form.role === 'CLIENT_USER' ? {} : { accessProfileId }),
         password: this.form.password,
       };
       await firstValueFrom(this.api.createUser(dto));
+      this.formSuccess = 'Usuario criado com sucesso.';
       this.resetForm();
       this.refresh$.next();
     } catch (err: unknown) {
@@ -764,7 +946,7 @@ export class AdminUsersComponent {
         }`;
         return;
       }
-      this.formError = err instanceof Error ? err.message : 'Falha inesperada ao salvar usuário';
+      this.formError = err instanceof Error ? err.message : 'Falha inesperada ao salvar usuario';
     }
   }
 
@@ -787,7 +969,7 @@ export class AdminUsersComponent {
     const target = this.deleteTarget;
     if (!target || this.deletePending) return;
     if (!this.deleteConfirmed) {
-      this.deleteError = 'Confirme que está ciente para continuar.';
+      this.deleteError = 'Confirme que esta ciente para continuar.';
       return;
     }
 
@@ -808,7 +990,7 @@ export class AdminUsersComponent {
         }`;
         return;
       }
-      this.deleteError = err instanceof Error ? err.message : 'Falha inesperada ao remover usuário';
+      this.deleteError = err instanceof Error ? err.message : 'Falha inesperada ao remover usuario';
     } finally {
       this.deletePending = false;
     }

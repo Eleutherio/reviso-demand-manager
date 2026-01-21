@@ -15,6 +15,9 @@ import { CompanyDto, CompanyType } from '../../api/company';
   imports: [CommonModule, DatePipe],
   template: `
     <h2>Empresas</h2>
+    <p style="margin: 4px 0 16px; color: inherit;">
+      O codigo da empresa e usado no convite de usuarios CLIENT_USER.
+    </p>
 
     <div style="padding: 12px 0;">
       <h3>{{ editingId ? 'Editar empresa' : 'Criar empresa' }}</h3>
@@ -47,7 +50,7 @@ import { CompanyDto, CompanyType } from '../../api/company';
             (change)="form.activeStr = getBoolStr($event)"
           >
             <option value="true">Sim</option>
-            <option value="false">Não</option>
+            <option value="false">Nao</option>
           </select>
         </label>
         }
@@ -79,7 +82,7 @@ import { CompanyDto, CompanyType } from '../../api/company';
         </label>
 
         <label style="display: grid; gap: 4px;">
-          Links úteis (1 por linha)
+          Links uteis (1 por linha)
           <textarea
             name="usefulLinks"
             rows="4"
@@ -139,7 +142,7 @@ import { CompanyDto, CompanyType } from '../../api/company';
           <tr>
             <td style="padding: 8px;">{{ c.name }}</td>
             <td style="padding: 8px;">{{ c.type }}</td>
-            <td style="padding: 8px;">{{ c.active ? 'Sim' : 'Não' }}</td>
+            <td style="padding: 8px;">{{ c.active ? 'Sim' : 'Nao' }}</td>
             <td style="padding: 8px;">{{ c.segment ?? '-' }}</td>
             <td style="padding: 8px;">{{ c.contactEmail ?? '-' }}</td>
             <td style="padding: 8px;">{{ c.companyCode ?? '-' }}</td>
@@ -195,14 +198,14 @@ export class AdminCompaniesComponent {
           if (err.status === 401) {
             return of({
               status: 'error' as const,
-              message: 'Não autenticado (401). Faça login novamente.',
+              message: 'Nao autenticado (401). Faca login novamente.',
             });
           }
 
           if (err.status === 403) {
             return of({
               status: 'error' as const,
-              message: 'Sem permissão (403). Este endpoint exige AGENCY_ADMIN.',
+              message: 'Sem permissao (403). Este endpoint exige AGENCY_ADMIN.',
             });
           }
 

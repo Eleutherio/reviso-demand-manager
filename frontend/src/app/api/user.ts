@@ -7,6 +7,7 @@ export interface UserDto {
   role: UserRole;
   companyId: string | null;
   companyCode: string | null;
+  accessProfileId?: string | null;
   active: boolean;
   createdAt: string;
 }
