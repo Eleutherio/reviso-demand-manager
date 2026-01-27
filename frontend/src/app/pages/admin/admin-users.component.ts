@@ -8,6 +8,7 @@ import { AdminInvitesApi, CreateAgencyUserInviteDto, CreateClientUserInviteDto }
 import { AdminUsersApi, CreateUserDto, UpdateUserDto } from '../../api/admin-users.api';
 import { CompanyDto } from '../../api/company';
 import { UserDto, UserRole } from '../../api/user';
+import { AuthService } from '../../core/auth.service';
 
 @Component({
   selector: 'app-admin-users',
@@ -18,10 +19,12 @@ import { UserDto, UserRole } from '../../api/user';
     <section class="users-page">
       <header class="users-header">
         <div class="users-title-block">
-          <p class="users-eyebrow">Administracao</p>
-          <h2 class="users-title">Usuarios</h2>
+          <p class="users-eyebrow">Administração</p>
+          <h2 class="users-title">
+            Gestão de Usuários - {{ agencyName ?? '...' }}
+          </h2>
           <p class="users-subtitle">
-            Agora o fluxo principal e convite. Usuarios recebem email para criar a senha.
+            Aqui você adiciona, edita e define papéis criativos dos seus colaboradores.
           </p>
         </div>
       </header>
@@ -30,9 +33,9 @@ import { UserDto, UserRole } from '../../api/user';
         <section class="users-card users-card--form">
           <div class="users-card__head">
             <h3 class="users-card__title">
-              {{ editingId ? 'Editar usuario' : 'Adicionar usuario' }}
+              {{ editingId ? 'Editar usuário' : 'Adicionar usuário' }}
             </h3>
-            <p class="users-muted">Gerencie usuarios e convites em um unico painel.</p>
+            <p class="users-muted">Gerencie usuários e convites em um único painel.</p>
           </div>
 
           <form (submit)="onSubmit($event)" class="users-form">
@@ -48,7 +51,7 @@ import { UserDto, UserRole } from '../../api/user';
                     [checked]="createMode === 'invite'"
                     (change)="setCreateMode('invite')"
                   />
-                  <span>Convite por email</span>
+                  <span>Convite por e-mail</span>
                 </label>
                 <label class="users-check">
                   <input
@@ -66,7 +69,7 @@ import { UserDto, UserRole } from '../../api/user';
 
             <label class="users-field">
               <span class="users-field__label">
-                Papel do usuario <span class="users-required">*</span>
+                Perfil de acesso <span class="users-required">*</span>
               </span>
               <select
                 name="role"
@@ -77,7 +80,6 @@ import { UserDto, UserRole } from '../../api/user';
               >
                 <option value="AGENCY_ADMIN">{{ roleLabels.AGENCY_ADMIN }}</option>
                 <option value="AGENCY_USER">{{ roleLabels.AGENCY_USER }}</option>
-                <option value="CLIENT_USER">{{ roleLabels.CLIENT_USER }}</option>
               </select>
             </label>
 
@@ -99,7 +101,7 @@ import { UserDto, UserRole } from '../../api/user';
             </label>
 
             <label class="users-field">
-              <span class="users-field__label">Email <span class="users-required">*</span></span>
+              <span class="users-field__label">E-mail <span class="users-required">*</span></span>
               <input
                 name="email"
                 type="email"
@@ -117,7 +119,7 @@ import { UserDto, UserRole } from '../../api/user';
             @if (form.role !== 'CLIENT_USER') {
             <label class="users-field">
               <span class="users-field__label">
-                Perfil de acesso <span class="users-required">*</span>
+                Papel do usuário <span class="users-required">*</span>
               </span>
               <select
                 name="accessProfileId"
@@ -129,13 +131,13 @@ import { UserDto, UserRole } from '../../api/user';
               >
                 <option value="" disabled>Selecione</option>
                 @for (p of selectableProfiles; track p.id) {
-                <option [value]="p.id">{{ p.name }}</option>
+                <option [value]="p.id">{{ getProfileDisplayName(p.name) }}</option>
                 }
               </select>
               @if (fieldErrors.accessProfileId) {
               <small class="users-error">{{ fieldErrors.accessProfileId }}</small>
               } @else if (selectableProfiles.length === 0) {
-              <small class="users-muted">Nenhum perfil de acesso disponivel.</small>
+              <small class="users-muted">Nenhum papel do usuário disponível.</small>
               }
             </label>
             }
@@ -185,7 +187,7 @@ import { UserDto, UserRole } from '../../api/user';
                 />
                 <span>Mostrar senha</span>
               </label>
-              <small class="users-muted">Minimo 8 caracteres.</small>
+              <small class="users-muted">Mínimo 8 caracteres.</small>
             </div>
             }
 
@@ -199,7 +201,7 @@ import { UserDto, UserRole } from '../../api/user';
                 (change)="form.activeStr = getBoolStr($event)"
               >
                 <option value="true">Sim</option>
-                <option value="false">Nao</option>
+                <option value="false">Não</option>
               </select>
             </label>
             }
@@ -207,7 +209,7 @@ import { UserDto, UserRole } from '../../api/user';
             @if (form.role === 'CLIENT_USER') {
             <label class="users-field">
               <span class="users-field__label">
-                Empresa (codigo ou UUID) <span class="users-required">*</span>
+                Empresa (código ou UUID) <span class="users-required">*</span>
               </span>
               <input
                 name="companyId"
@@ -233,7 +235,7 @@ import { UserDto, UserRole } from '../../api/user';
 
             @if (clientCompanies.length === 0) {
             <small class="users-muted">
-              Cadastre uma empresa cliente para usar o codigo.
+              Cadastre uma empresa cliente para usar o código.
             </small>
             }
             }
@@ -247,7 +249,7 @@ import { UserDto, UserRole } from '../../api/user';
                       ? inviteSent
                         ? 'Enviado'
                         : 'Enviar convite'
-                      : 'Criar usuario'
+                      : 'Criar usuário'
                 }}
               </button>
               @if (editingId) {
@@ -268,7 +270,7 @@ import { UserDto, UserRole } from '../../api/user';
         <section class="users-card users-card--list">
           <div class="users-card__head users-card__head--row">
             <div>
-              <h3 class="users-card__title">Usuarios cadastrados</h3>
+              <h3 class="users-card__title">Usuários cadastrados</h3>
               <p class="users-muted">Filtre e acompanhe os acessos do time.</p>
             </div>
           </div>
@@ -278,7 +280,7 @@ import { UserDto, UserRole } from '../../api/user';
           <div class="users-state">Carregando...</div>
           } @else if (vm.status === 'error') {
           <div class="users-alert users-alert--error">
-            Erro ao carregar usuarios: {{ vm.message }}
+            Erro ao carregar usuários: {{ vm.message }}
           </div>
           } @else {
           <div class="users-toolbar">
@@ -287,13 +289,18 @@ import { UserDto, UserRole } from '../../api/user';
               <strong>{{ vm.users.length }}</strong>
             </div>
           </div>
+          @if (vm.leakCount > 0) {
+          <div class="users-alert users-alert--error">
+            {{ vm.leakCount }} usuário(s) de outra agência foram ocultados por segurança.
+          </div>
+          }
 
           <div class="users-filters">
             <label class="users-field">
-              <span class="users-field__label">Buscar usuarios</span>
+              <span class="users-field__label">Buscar usuários</span>
               <input
                 name="search"
-                placeholder="Nome, email, empresa ou codigo"
+                placeholder="Nome, e-mail ou perfil"
                 [value]="searchTerm"
                 class="users-input"
                 (input)="searchTerm = getValue($event)"
@@ -301,7 +308,7 @@ import { UserDto, UserRole } from '../../api/user';
             </label>
 
             <label class="users-field">
-              <span class="users-field__label">Papel do usuario</span>
+              <span class="users-field__label">Papel do usuário</span>
               <select
                 name="filterRole"
                 [value]="filterRole"
@@ -311,7 +318,6 @@ import { UserDto, UserRole } from '../../api/user';
                 <option value="">Todas</option>
                 <option value="AGENCY_ADMIN">{{ roleLabels.AGENCY_ADMIN }}</option>
                 <option value="AGENCY_USER">{{ roleLabels.AGENCY_USER }}</option>
-                <option value="CLIENT_USER">{{ roleLabels.CLIENT_USER }}</option>
               </select>
             </label>
 
@@ -330,20 +336,20 @@ import { UserDto, UserRole } from '../../api/user';
             </label>
           </div>
           @if (vm.users.length === 0) {
-          <div class="users-empty">Nenhum usuario cadastrado.</div>
+          <div class="users-empty">Nenhum usuário cadastrado.</div>
           } @else if (getFilteredUsers(vm.users).length === 0) {
-          <div class="users-empty">Nenhum usuario encontrado com os filtros atuais.</div>
+          <div class="users-empty">Nenhum usuário encontrado com os filtros atuais.</div>
           } @else {
           <div class="users-table-wrap">
             <table class="users-table">
               <thead>
                 <tr>
                   <th>Nome</th>
-                  <th>Email</th>
-                  <th>Papel do usuario</th>
+                  <th>E-mail</th>
+                  <th>Perfil de acesso</th>
+                  <th>Papel do usuário</th>
                   <th>Ativo</th>
-                  <th>Empresa</th>
-                  <th>Codigo</th>
+                  <th>Última vez logado</th>
                   <th>Criado em</th>
                   <th></th>
                 </tr>
@@ -364,28 +370,27 @@ import { UserDto, UserRole } from '../../api/user';
                     </span>
                   </td>
                   <td>
+                    <span class="users-profile">{{ getAccessProfileLabel(u) }}</span>
+                  </td>
+                  <td>
                     <span
                       class="users-chip"
                       [class.users-chip--active]="u.active"
                       [class.users-chip--inactive]="!u.active"
                     >
-                      {{ u.active ? 'Sim' : 'Nao' }}
+                      {{ u.active ? 'Sim' : 'Não' }}
                     </span>
                   </td>
-                  <td>{{ getCompanyName(u) ?? '-' }}</td>
                   <td>
-                    <div class="users-code">
-                      <span class="users-code__value">{{ u.companyCode ?? '-' }}</span>
-                      @if (u.companyCode) {
-                      <button
-                        type="button"
-                        class="btn btn--ghost btn--sm users-copy-btn"
-                        (click)="copyCompanyCode(u.companyCode, u.id)"
-                      >
-                        {{ isCopied(u.id) ? 'Copiado!' : 'Copiar' }}
-                      </button>
-                      }
-                    </div>
+                    <span
+                      class="users-chip users-chip--status"
+                      [class.users-chip--online]="getLastLoginTone(u) === 'online'"
+                      [class.users-chip--recent]="getLastLoginTone(u) === 'recent'"
+                      [class.users-chip--stale]="getLastLoginTone(u) === 'stale'"
+                      [class.users-chip--unknown]="getLastLoginTone(u) === 'unknown'"
+                    >
+                      {{ getLastLoginLabel(u) }}
+                    </span>
                   </td>
                   <td>{{ u.createdAt | date : 'dd/MM/yyyy HH:mm' }}</td>
                   <td class="users-actions">
@@ -418,7 +423,7 @@ import { UserDto, UserRole } from '../../api/user';
       <div class="users-modal" (click)="closeDeleteModal()">
         <div class="users-modal__panel" (click)="$event.stopPropagation()">
           <div class="users-modal__head">
-            <h4 class="users-modal__title">Confirmar exclusao</h4>
+            <h4 class="users-modal__title">Confirmar exclusão</h4>
             <button
               type="button"
               class="users-modal__close"
@@ -430,7 +435,7 @@ import { UserDto, UserRole } from '../../api/user';
             </button>
           </div>
           <p class="users-modal__text">
-            Tem certeza que deseja remover <strong>{{ deleteTarget.fullName }}</strong>?
+            Tem certeza de que deseja remover <strong>{{ deleteTarget.fullName }}</strong>?
           </p>
           <label class="users-modal__check">
             <input
@@ -438,7 +443,7 @@ import { UserDto, UserRole } from '../../api/user';
               [checked]="deleteConfirmed"
               (change)="deleteConfirmed = getChecked($event); deleteError = null"
             />
-            <span>Estou ciente que essa acao nao pode ser desfeita.</span>
+            <span>Estou ciente de que essa ação não pode ser desfeita.</span>
           </label>
           @if (deleteError) {
           <div class="users-alert users-alert--error">{{ deleteError }}</div>
@@ -470,7 +475,7 @@ export class AdminUsersComponent {
   readonly vm$;
   readonly roleLabels: Record<UserRole, string> = {
     AGENCY_ADMIN: 'Administrador',
-    AGENCY_USER: 'Usuario',
+    AGENCY_USER: 'Usuário',
     CLIENT_USER: 'Cliente',
   };
 
@@ -478,10 +483,22 @@ export class AdminUsersComponent {
   clientCompanies: CompanyDto[] = [];
   accessProfiles: AccessProfileDto[] = [];
   selectableProfiles: AccessProfileDto[] = [];
+  agencyName: string | null = null;
 
   private companyById = new Map<string, CompanyDto>();
   private companyByCode = new Map<string, CompanyDto>();
+  private profileById = new Map<string, AccessProfileDto>();
   private readonly allowedProfileNames = ['atendimento', 'criacao', 'gestor'];
+  private readonly profileDisplayNames: Record<string, string> = {
+    atendimento: 'Atendimento',
+    criacao: 'Criação',
+    gestor: 'Gestor',
+  };
+  private readonly lastLoginFormatter = new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
 
   editingId: string | null = null;
   createMode: 'invite' | 'manual' = 'invite';
@@ -513,8 +530,6 @@ export class AdminUsersComponent {
   deleteConfirmed = false;
   deletePending = false;
   deleteError: string | null = null;
-  copiedUserId: string | null = null;
-  private copyResetId: number | null = null;
   fieldErrors: Partial<
     Record<'fullName' | 'email' | 'password' | 'confirmPassword' | 'companyId' | 'accessProfileId', string>
   > = {};
@@ -529,7 +544,8 @@ export class AdminUsersComponent {
     private readonly api: AdminUsersApi,
     private readonly invitesApi: AdminInvitesApi,
     private readonly companiesApi: AdminCompaniesApi,
-    private readonly accessProfilesApi: AdminAccessProfilesApi
+    private readonly accessProfilesApi: AdminAccessProfilesApi,
+    private readonly auth: AuthService
   ) {
     this.vm$ = this.refresh$.pipe(
       startWith(undefined),
@@ -543,7 +559,13 @@ export class AdminUsersComponent {
       map(({ users, companies, profiles }) => {
         this.setCompanies(companies);
         this.setAccessProfiles(profiles);
-        return { status: 'ready' as const, users };
+        const agencyUsers = this.filterUsersByAgency(users);
+        const safeUsers = this.filterPanelUsers(agencyUsers);
+        return {
+          status: 'ready' as const,
+          users: safeUsers,
+          leakCount: Math.max(0, users.length - agencyUsers.length),
+        };
       }),
       startWith({ status: 'loading' as const }),
       catchError((err: unknown) => {
@@ -553,13 +575,13 @@ export class AdminUsersComponent {
           if (err.status === 401) {
             return of({
               status: 'error' as const,
-              message: 'Nao autenticado (401). Faca login novamente.',
+              message: 'Não autenticado (401). Faça login novamente.',
             });
           }
           if (err.status === 403) {
             return of({
               status: 'error' as const,
-              message: 'Sem permissao (403). Este endpoint exige AGENCY_ADMIN.',
+              message: 'Sem permissão (403). Este endpoint exige AGENCY_ADMIN.',
             });
           }
           return of({
@@ -578,6 +600,8 @@ export class AdminUsersComponent {
     this.clientCompanies = companies.filter((company) =>
       company.type === 'CLIENT' && company.active
     );
+    const agencyCompany = companies.find((company) => company.type === 'AGENCY');
+    this.agencyName = agencyCompany?.name ?? companies[0]?.name ?? null;
     this.companyById = new Map(companies.map((company) => [company.id, company]));
     this.companyByCode = new Map(
       companies
@@ -588,8 +612,9 @@ export class AdminUsersComponent {
 
   private setAccessProfiles(profiles: AccessProfileDto[]): void {
     this.accessProfiles = profiles;
+    this.profileById = new Map(profiles.map((profile) => [profile.id, profile]));
     this.selectableProfiles = profiles.filter((profile) =>
-      this.allowedProfileNames.includes(profile.name.trim().toLowerCase())
+      this.allowedProfileNames.includes(this.normalizeProfileName(profile.name))
     );
     this.applyDefaultAccessProfile();
   }
@@ -648,6 +673,94 @@ export class AdminUsersComponent {
     return target.value === 'true' ? 'true' : 'false';
   }
 
+  private normalizeProfileName(name: string): string {
+    return name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase();
+  }
+
+  getProfileDisplayName(name: string | null | undefined): string {
+    if (!name) return '';
+    const normalized = this.normalizeProfileName(name);
+    return this.profileDisplayNames[normalized] ?? name;
+  }
+
+  private isCurrentUser(user: UserDto): boolean {
+    const currentEmail = this.auth.getEmail() ?? this.auth.decodeJwt()?.email ?? '';
+    if (!currentEmail) return false;
+    return user.email.toLowerCase() === currentEmail.toLowerCase();
+  }
+
+  private getActivityAt(user: UserDto): string | null | undefined {
+    return user.lastSeenAt ?? user.lastLoginAt;
+  }
+
+  getAccessProfileLabel(user: UserDto): string {
+    if (user.role === 'CLIENT_USER') return '-';
+    if (!user.accessProfileId) return '—';
+    const profile = this.profileById.get(user.accessProfileId);
+    return profile ? this.getProfileDisplayName(profile.name) : '—';
+  }
+
+  getLastLoginLabel(user: UserDto): string {
+    if (this.isCurrentUser(user)) return 'Online';
+    const lastLoginAt = this.getActivityAt(user);
+    if (!lastLoginAt) return 'Nunca';
+    const parsed = new Date(lastLoginAt);
+    if (Number.isNaN(parsed.getTime())) return '—';
+    const diffMs = Date.now() - parsed.getTime();
+    const diffMinutes = Math.floor(diffMs / 60000);
+    if (diffMinutes < 5) return 'Online';
+    if (diffMinutes < 60) return `Online há ${diffMinutes} min`;
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) {
+      return diffHours === 1 ? 'Online há 1 hora' : `Online há ${diffHours} horas`;
+    }
+    return this.lastLoginFormatter.format(parsed);
+  }
+
+  getLastLoginTone(user: UserDto): 'online' | 'recent' | 'stale' | 'unknown' {
+    if (this.isCurrentUser(user)) return 'online';
+    const lastLoginAt = this.getActivityAt(user);
+    if (!lastLoginAt) return 'unknown';
+    const parsed = new Date(lastLoginAt);
+    if (Number.isNaN(parsed.getTime())) return 'unknown';
+    const diffMs = Date.now() - parsed.getTime();
+    const diffMinutes = Math.floor(diffMs / 60000);
+    if (diffMinutes < 5) return 'online';
+    if (diffMinutes < 60 * 24) return 'recent';
+    return 'stale';
+  }
+
+  private resolveAgencyId(users: UserDto[]): string | null {
+    const tokenAgencyId = this.auth.getAgencyId();
+    if (tokenAgencyId) return tokenAgencyId;
+
+    const agencyIds = Array.from(
+      new Set(users.map((user) => user.agencyId).filter((id): id is string => !!id))
+    );
+    if (agencyIds.length === 1) return agencyIds[0];
+
+    const email = this.auth.getEmail() ?? this.auth.decodeJwt()?.email ?? '';
+    if (!email) return null;
+    const match = users.find((user) => user.email.toLowerCase() === email.toLowerCase());
+    return match?.agencyId ?? null;
+  }
+
+  private filterUsersByAgency(users: UserDto[]): UserDto[] {
+    const agencyId = this.resolveAgencyId(users);
+    if (!agencyId) return [];
+    return users.filter((user) => user.agencyId === agencyId);
+  }
+
+  private filterPanelUsers(users: UserDto[]): UserDto[] {
+    return users.filter(
+      (user) => user.role === 'AGENCY_ADMIN' || user.role === 'AGENCY_USER'
+    );
+  }
+
   private isUuid(value: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
       value
@@ -662,20 +775,6 @@ export class AdminUsersComponent {
     return value.trim().toUpperCase();
   }
 
-  getCompanyName(user: UserDto): string | null {
-    if (user.companyId) {
-      const company = this.companyById.get(user.companyId);
-      if (company?.name) return company.name;
-    }
-
-    if (user.companyCode) {
-      const company = this.companyByCode.get(user.companyCode.toLowerCase());
-      if (company?.name) return company.name;
-    }
-
-    return null;
-  }
-
   getFilteredUsers(users: UserDto[]): UserDto[] {
     const term = this.searchTerm.trim().toLowerCase();
 
@@ -686,18 +785,14 @@ export class AdminUsersComponent {
 
       if (!term) return true;
 
-      const companyId = user.companyId ?? '';
-      const companyCode = user.companyCode ?? '';
-      const companyName = this.getCompanyName(user) ?? '';
       const roleLabel = this.roleLabels[user.role] ?? user.role;
+      const accessProfileLabel = this.getAccessProfileLabel(user);
       const matchesSearch =
         user.fullName.toLowerCase().includes(term) ||
         user.email.toLowerCase().includes(term) ||
         user.role.toLowerCase().includes(term) ||
         roleLabel.toLowerCase().includes(term) ||
-        companyName.toLowerCase().includes(term) ||
-        companyCode.toLowerCase().includes(term) ||
-        companyId.toLowerCase().includes(term);
+        accessProfileLabel.toLowerCase().includes(term);
 
       return matchesSearch;
     });
@@ -804,7 +899,7 @@ export class AdminUsersComponent {
     }
 
     if (!this.form.email.trim()) {
-      errors.email = 'Informe o email.';
+      errors.email = 'Informe o e-mail.';
     }
 
     if (!this.editingId && this.createMode === 'invite' && this.form.role === 'AGENCY_ADMIN') {
@@ -822,41 +917,41 @@ export class AdminUsersComponent {
       if (!confirmPassword) {
         errors.confirmPassword = 'Repita a senha.';
       } else if (password && confirmPassword !== password) {
-        errors.confirmPassword = 'As senhas nao conferem.';
+        errors.confirmPassword = 'As senhas não conferem.';
       }
     }
 
     if (this.form.role === 'CLIENT_USER') {
       const companyRef = this.form.companyIdText.trim();
       if (!companyRef) {
-        errors.companyId = 'Informe o codigo da empresa.';
+        errors.companyId = 'Informe o código da empresa.';
       } else {
         const isUuid = this.isUuid(companyRef);
         const normalizedCode = this.normalizeCompanyCode(companyRef);
         const isCode = this.isCompanyCode(normalizedCode);
 
         if (!isUuid && !isCode) {
-          errors.companyId = 'Informe um UUID valido ou codigo no formato AAAA-CL-XXX.';
+          errors.companyId = 'Informe um UUID válido ou código no formato AAAA-CL-XXX.';
         } else if (
           isUuid &&
           this.companyById.size > 0 &&
           !this.companyById.has(companyRef)
         ) {
-          errors.companyId = 'Empresa nao encontrada para este UUID.';
+          errors.companyId = 'Empresa não encontrada para este UUID.';
         } else if (
           !isUuid &&
           this.companyByCode.size > 0 &&
           !this.companyByCode.has(normalizedCode.toLowerCase())
         ) {
-          errors.companyId = 'Codigo de empresa nao encontrado.';
+          errors.companyId = 'Código de empresa não encontrado.';
         }
       }
     } else {
       const accessProfileId = this.form.accessProfileId.trim();
       if (!accessProfileId) {
-        errors.accessProfileId = 'Selecione o perfil de acesso.';
+        errors.accessProfileId = 'Selecione o papel do usuário.';
       } else if (!this.isUuid(accessProfileId)) {
-        errors.accessProfileId = 'Perfil de acesso invalido.';
+        errors.accessProfileId = 'Papel do usuário inválido.';
       }
     }
 
@@ -936,7 +1031,7 @@ export class AdminUsersComponent {
         password: this.form.password,
       };
       await firstValueFrom(this.api.createUser(dto));
-      this.formSuccess = 'Usuario criado com sucesso.';
+      this.formSuccess = 'Usuário criado com sucesso.';
       this.resetForm();
       this.refresh$.next();
     } catch (err: unknown) {
@@ -946,7 +1041,7 @@ export class AdminUsersComponent {
         }`;
         return;
       }
-      this.formError = err instanceof Error ? err.message : 'Falha inesperada ao salvar usuario';
+      this.formError = err instanceof Error ? err.message : 'Falha inesperada ao salvar usuário';
     }
   }
 
@@ -969,7 +1064,7 @@ export class AdminUsersComponent {
     const target = this.deleteTarget;
     if (!target || this.deletePending) return;
     if (!this.deleteConfirmed) {
-      this.deleteError = 'Confirme que esta ciente para continuar.';
+      this.deleteError = 'Confirme que está ciente para continuar.';
       return;
     }
 
@@ -990,55 +1085,10 @@ export class AdminUsersComponent {
         }`;
         return;
       }
-      this.deleteError = err instanceof Error ? err.message : 'Falha inesperada ao remover usuario';
+      this.deleteError = err instanceof Error ? err.message : 'Falha inesperada ao remover usuário';
     } finally {
       this.deletePending = false;
     }
   }
 
-  copyCompanyCode(companyCode: string | null, userId: string): void {
-    if (!companyCode) return;
-
-    const markCopied = (): void => {
-      this.copiedUserId = userId;
-      if (this.copyResetId !== null) {
-        clearTimeout(this.copyResetId);
-      }
-      this.copyResetId = window.setTimeout(() => {
-        this.copiedUserId = null;
-        this.copyResetId = null;
-      }, 5000);
-    };
-
-    if (this.fallbackCopy(companyCode)) {
-      markCopied();
-      return;
-    }
-
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(companyCode).then(() => markCopied()).catch(() => undefined);
-    }
-  }
-
-  private fallbackCopy(text: string): boolean {
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
-    let copied = false;
-    try {
-      copied = document.execCommand('copy');
-    } catch {
-      copied = false;
-    }
-    document.body.removeChild(textarea);
-    return copied;
-  }
-
-  isCopied(userId: string): boolean {
-    return userId === this.copiedUserId;
-  }
 }

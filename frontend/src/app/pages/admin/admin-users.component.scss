@@ -439,24 +439,37 @@
   color: #6b7280;
 }
 
-.users-code {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: nowrap;
+.users-chip--status {
+  font-weight: 600;
 }
 
-.users-copy-btn {
-  min-width: 96px;
-  text-align: center;
+.users-chip--online {
+  background: #111827;
+  border-color: #111827;
+  color: #ffffff;
 }
 
-.users-code__value {
-  padding: 2px 8px;
-  border-radius: 8px;
-  background: var(--surface-soft);
-  border: 1px solid var(--border);
-  font-size: 12px;
+.users-chip--recent {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+.users-chip--stale {
+  background: #ffffff;
+  border-color: #d1d5db;
+  color: #6b7280;
+}
+
+.users-chip--unknown {
+  background: #f9fafb;
+  border-color: #e5e7eb;
+  color: #6b7280;
+}
+
+.users-profile {
+  font-weight: 600;
+  color: var(--text);
 }
 
 .btn {
